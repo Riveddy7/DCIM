@@ -1,3 +1,4 @@
+
 export type Json =
   | string
   | number
@@ -67,22 +68,51 @@ export type Database = {
           }
         ];
       }
-      racks: {
+      locations: { // New table for locations
         Row: {
           id: string // uuid
           name: string | null
-          description: string | null // New field
-          location: string | null // New field
-          status: string | null // New field (e.g., 'Online', 'Offline', 'Maintenance')
-          total_u: number | null // integer or numeric
           tenant_id: string | null // uuid
           created_at: string | null // timestamp with timezone
         }
         Insert: {
           id?: string
           name?: string | null
+          tenant_id?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string | null
+          tenant_id?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      racks: {
+        Row: {
+          id: string // uuid
+          name: string | null
+          description: string | null
+          location_id: string | null // Changed from location: string to location_id: string (uuid)
+          status: string | null 
+          total_u: number | null 
+          tenant_id: string | null 
+          created_at: string | null 
+        }
+        Insert: {
+          id?: string
+          name?: string | null
           description?: string | null
-          location?: string | null
+          location_id?: string | null // Changed
           status?: string | null
           total_u?: number | null
           tenant_id?: string | null
@@ -92,7 +122,7 @@ export type Database = {
           id?: string
           name?: string | null
           description?: string | null
-          location?: string | null
+          location_id?: string | null // Changed
           status?: string | null
           total_u?: number | null
           tenant_id?: string | null
@@ -105,17 +135,24 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users" 
             referencedColumns: ["id"]
+          },
+          { // New relationship for location_id
+            foreignKeyName: "racks_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
           }
         ]
       }
       assets: {
         Row: {
-          id: string // uuid
+          id: string 
           name: string | null
-          size_u: number | null // integer or numeric
-          rack_id: string | null // uuid
-          tenant_id: string | null // uuid
-          created_at: string | null // timestamp with timezone
+          size_u: number | null 
+          rack_id: string | null 
+          tenant_id: string | null 
+          created_at: string | null 
         }
         Insert: {
           id?: string
@@ -152,12 +189,12 @@ export type Database = {
       }
       ports: {
         Row: {
-          id: string // uuid
+          id: string 
           name: string | null
-          port_type: string | null // e.g., 'RJ45', 'SFP+'
-          asset_id: string | null // uuid
-          tenant_id: string | null // uuid
-          created_at: string | null // timestamp with timezone
+          port_type: string | null 
+          asset_id: string | null 
+          tenant_id: string | null 
+          created_at: string | null 
         }
         Insert: {
           id?: string
@@ -194,12 +231,12 @@ export type Database = {
       }
       connections: {
         Row: {
-          id: string // uuid
+          id: string 
           name: string | null
-          port_a_id: string | null // uuid
-          port_b_id: string | null // uuid
-          tenant_id: string | null // uuid
-          created_at: string | null // timestamp with timezone
+          port_a_id: string | null 
+          port_b_id: string | null 
+          tenant_id: string | null 
+          created_at: string | null 
         }
         Insert: {
           id?: string
@@ -247,26 +284,27 @@ export type Database = {
     }
     Functions: {
       get_network_ports_stats: {
-        Args: { tenant_id_param: string } // uuid
-        Returns: { total_ports: number; used_ports: number }[] // BIGINT becomes number
+        Args: { tenant_id_param: string } 
+        Returns: { total_ports: number; used_ports: number }[] 
       }
       get_fullest_rack: {
-        Args: { tenant_id_param: string } // uuid
-        Returns: { id: string; name: string; occupancy_percentage: number }[] // uuid, TEXT, NUMERIC
+        Args: { tenant_id_param: string } 
+        Returns: { id: string; name: string; occupancy_percentage: number }[] 
       }
-      get_racks_overview: { // New RPC function
-        Args: { tenant_id_param: string } // uuid
+      get_racks_overview: { 
+        Args: { tenant_id_param: string } 
         Returns: {
-          id: string // uuid
+          id: string 
           name: string | null
           description: string | null
-          location: string | null
+          location_id: string | null // Changed
+          location_name: string | null // Added
           status: string | null
           total_u: number | null
-          occupied_u: number | null // BIGINT becomes number
-          asset_count: number | null // BIGINT becomes number
-          total_rack_ports: number | null // BIGINT becomes number
-          used_rack_ports: number | null // BIGINT becomes number
+          occupied_u: number | null 
+          asset_count: number | null 
+          total_rack_ports: number | null 
+          used_rack_ports: number | null 
         }[]
       }
     }
@@ -358,5 +396,7 @@ export type Enums<
   : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
   ? Database["public"]["Enums"][PublicEnumNameOrOptions]
   : never
+
+    
 
     

@@ -1,38 +1,109 @@
 
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+'use client'; // This page now uses client-side state for the dialog
+
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client'; // Changed to client for dialog interaction
+import { useRouter } from 'next/navigation'; // For router.refresh()
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RackCard } from '@/components/racks/RackCard';
-import { PlusCircle, Search, LayoutDashboard, ListFilter, MapPin } from 'lucide-react';
+import { CreateRackForm } from '@/components/racks/CreateRackForm'; // Import the form
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'; // Import Dialog
+import { PlusCircle, Search, LayoutDashboard, ListFilter, MapPin, Loader2 } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
+import { useToast } from '@/hooks/use-toast';
+
 
 type RackOverview = Database['public']['Functions']['get_racks_overview']['Returns'][number];
+type Location = Database['public']['Tables']['locations']['Row'];
 
-export default async function RacksPage() {
+// This page is now a client component to manage Dialog state
+export default function RacksPage() {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const router = useRouter();
+  const { toast } = useToast();
 
-  if (!user) {
-    redirect('/login');
+  const [racks, setRacks] = useState<RackOverview[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [racksError, setRacksError] = useState<string | null>(null);
+  const [isCreateRackDialogOpen, setIsCreateRackDialogOpen] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        toast({ title: 'Error de autenticación', description: 'No se pudo obtener el usuario.', variant: 'destructive' });
+        setIsLoading(false);
+        router.push('/login'); // Redirect if no user
+        return;
+      }
+      setUserId(user.id);
+
+      // Fetch Racks Overview
+      const { data: racksData, error: racksRpcError } = await supabase
+        .rpc('get_racks_overview', { tenant_id_param: user.id });
+
+      if (racksRpcError) {
+        console.error('Error fetching racks overview:', racksRpcError.message);
+        setRacksError(racksRpcError.message);
+        toast({ title: 'Error al cargar racks', description: racksRpcError.message, variant: 'destructive' });
+      } else {
+        setRacks(racksData || []);
+      }
+
+      // Fetch Locations
+      const { data: locationsData, error: locationsError } = await supabase
+        .from('locations')
+        .select('id, name')
+        .eq('tenant_id', user.id);
+      
+      if (locationsError) {
+        console.error('Error fetching locations:', locationsError.message);
+        toast({ title: 'Error al cargar ubicaciones', description: locationsError.message, variant: 'destructive' });
+      } else {
+        setLocations(locationsData || []);
+      }
+      
+      setIsLoading(false);
+    }
+    fetchData();
+  }, [supabase, router, toast]);
+
+
+  const uniqueLocations = racks && racks.length > 0 
+    ? [...new Set(racks.map(r => r.location_name).filter(Boolean as any as (value: string | null) => value is string))] 
+    : ["All Locations"];
+  const uniqueStatuses = racks && racks.length > 0 
+    ? [...new Set(racks.map(r => r.status).filter(Boolean as any as (value: string | null) => value is string))] 
+    : ["All Statuses"];
+
+
+  const handleCreateRackSuccess = () => {
+    setIsCreateRackDialogOpen(false);
+    router.refresh(); // Refresh data on the page
+    // Re-fetch data to update the list (alternative to router.refresh if specific state update is needed)
+    async function refetchRacks() {
+        if (!userId) return;
+        const { data: racksData, error: racksRpcError } = await supabase
+        .rpc('get_racks_overview', { tenant_id_param: userId });
+        if (!racksRpcError) setRacks(racksData || []);
+    }
+    refetchRacks();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8 flex justify-center items-center">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
   }
-
-  const { data: racksData, error: racksError } = await supabase
-    .rpc('get_racks_overview', { tenant_id_param: user.id });
-
-  if (racksError) {
-    console.error('Error fetching racks overview:', racksError.message);
-    // Handle error display appropriately, maybe a toast or a message on the page
-  }
-  
-  const racks: RackOverview[] = racksData || [];
-
-  // Placeholder data for filters
-  const locations = racks && racks.length > 0 ? [...new Set(racks.map(r => r.location).filter(Boolean))] : ["All Locations"];
-  const statuses = racks && racks.length > 0 ? [...new Set(racks.map(r => r.status).filter(Boolean))] : ["All Statuses"];
-
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
@@ -67,8 +138,8 @@ export default async function RacksPage() {
               </SelectTrigger>
               <SelectContent className="bg-popover border-purple-500/50 text-gray-200">
                 <SelectItem value="all">All Statuses</SelectItem>
-                {statuses.map(status => (
-                  <SelectItem key={status} value={status?.toLowerCase() || 'unknown'}>{status || 'Unknown'}</SelectItem>
+                {uniqueStatuses.map(status => (
+                  <SelectItem key={status} value={status.toLowerCase() || 'unknown'}>{status || 'Unknown'}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -82,37 +153,53 @@ export default async function RacksPage() {
               </SelectTrigger>
               <SelectContent className="bg-popover border-purple-500/50 text-gray-200">
                 <SelectItem value="all">All Locations</SelectItem>
-                 {locations.map(location => (
-                  <SelectItem key={location} value={location?.toLowerCase() || 'unknown'}>{location || 'N/A'}</SelectItem>
+                 {uniqueLocations.map(locationName => (
+                  <SelectItem key={locationName} value={locationName.toLowerCase() || 'unknown'}>{locationName || 'N/A'}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          
         </div>
         <div className="mt-4 flex justify-end">
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 neon-glow-primary">
-              <PlusCircle className="mr-2 h-5 w-5" />
-              Create New Rack
-            </Button>
+            <Dialog open={isCreateRackDialogOpen} onOpenChange={setIsCreateRackDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 neon-glow-primary">
+                  <PlusCircle className="mr-2 h-5 w-5" />
+                  Create New Rack
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="glassmorphic-card border-purple-500/40 text-gray-50 sm:max-w-[525px]">
+                <DialogHeader>
+                  <DialogTitle className="font-headline text-2xl text-gray-50">Crear Nuevo Rack</DialogTitle>
+                </DialogHeader>
+                {userId && (
+                  <CreateRackForm 
+                    locations={locations} 
+                    tenantId={userId} 
+                    onSuccess={handleCreateRackSuccess}
+                    onCancel={() => setIsCreateRackDialogOpen(false)}
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
           </div>
       </header>
 
       {racksError && (
         <div className="text-center text-destructive-foreground bg-destructive/80 p-4 rounded-md">
-          <p>Could not load rack data. Please ensure the database is set up correctly and the 'get_racks_overview' RPC function exists.</p>
-          <p className="text-xs mt-1">{racksError.message}</p>
+          <p>Could not load rack data. Please ensure the database is set up correctly and the 'get_racks_overview' RPC function exists and is up to date.</p>
+          <p className="text-xs mt-1">{racksError}</p>
         </div>
       )}
 
-      {!racksError && racks.length === 0 && (
+      {!racksError && !isLoading && racks.length === 0 && (
         <div className="text-center text-gray-400 py-10">
           <p className="text-xl">No racks found.</p>
           <p>Get started by creating a new rack.</p>
         </div>
       )}
 
-      {!racksError && racks.length > 0 && (
+      {!racksError && !isLoading && racks.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {racks.map((rack) => (
             <RackCard key={rack.id} rack={rack} />
@@ -122,3 +209,5 @@ export default async function RacksPage() {
     </div>
   );
 }
+
+    

@@ -1,10 +1,11 @@
 
+
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress }
 from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { HardDrive, Network } from 'lucide-react'; // Using HardDrive for assets, Network for ports
+import { HardDrive, Network } from 'lucide-react'; 
 import type { Database } from '@/lib/database.types';
 
 type RackOverview = Database['public']['Functions']['get_racks_overview']['Returns'][number];
@@ -28,7 +29,7 @@ const getStatusColor = (status: string | null) => {
 
 export function RackCard({ rack }: RackCardProps) {
   const occupiedU = rack.occupied_u || 0;
-  const totalU = rack.total_u || 1; // Avoid division by zero if total_u is null/0
+  const totalU = rack.total_u || 1; 
   const uOccupancyPercentage = totalU > 0 ? Math.round((occupiedU / totalU) * 100) : 0;
 
   const usedPorts = rack.used_rack_ports || 0;
@@ -48,7 +49,7 @@ export function RackCard({ rack }: RackCardProps) {
               </CardTitle>
             </div>
             <Badge variant="outline" className="border-purple-500/30 text-purple-300 text-xs">
-              {rack.location || 'N/A'}
+              {rack.location_name || 'N/A'} {/* Changed from rack.location */}
             </Badge>
           </div>
           <p className="text-xs text-gray-400 pt-1">{rack.description || 'No description available.'}</p>
@@ -70,7 +71,7 @@ export function RackCard({ rack }: RackCardProps) {
           <div>
             <div className="flex justify-between items-center mb-1">
               <span className="text-xs font-medium text-gray-300">Port Availability</span>
-              <span className="text-xs text-teal-300">{usedPorts} Used / {availablePorts} Free ({totalPorts} Total)</span>
+              <span className="text-xs text-teal-300">{usedPorts} Used / {availablePorts < 0 ? 0 : availablePorts} Free ({totalPorts} Total)</span>
             </div>
             <Progress value={portAvailabilityPercentage} className="h-2 [&>div]:bg-teal-500 neon-glow-secondary" />
           </div>
@@ -79,3 +80,5 @@ export function RackCard({ rack }: RackCardProps) {
     </Link>
   );
 }
+
+    
