@@ -41,14 +41,11 @@ export type Database = {
           }
         ]
       }
-      // Add other tables here as needed for your application
-      // For example, racks, assets, ports, user_profiles etc.
       user_profiles: {
         Row: {
-          id: string; // Corresponds to auth.users.id
+          id: string; 
           full_name: string | null;
           avatar_url: string | null;
-          // Add other profile fields
         };
         Insert: {
           id: string;
@@ -70,12 +67,184 @@ export type Database = {
           }
         ];
       }
+      racks: {
+        Row: {
+          id: string // uuid
+          name: string | null
+          total_u: number | null // integer or numeric
+          tenant_id: string | null // uuid
+          created_at: string | null // timestamp with timezone
+        }
+        Insert: {
+          id?: string
+          name?: string | null
+          total_u?: number | null
+          tenant_id?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string | null
+          total_u?: number | null
+          tenant_id?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "racks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "users" 
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      assets: {
+        Row: {
+          id: string // uuid
+          name: string | null
+          size_u: number | null // integer or numeric
+          rack_id: string | null // uuid
+          tenant_id: string | null // uuid
+          created_at: string | null // timestamp with timezone
+        }
+        Insert: {
+          id?: string
+          name?: string | null
+          size_u?: number | null
+          rack_id?: string | null
+          tenant_id?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string | null
+          size_u?: number | null
+          rack_id?: string | null
+          tenant_id?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_rack_id_fkey"
+            columns: ["rack_id"]
+            isOneToOne: false
+            referencedRelation: "racks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      ports: {
+        Row: {
+          id: string // uuid
+          name: string | null
+          port_type: string | null // e.g., 'RJ45', 'SFP+'
+          asset_id: string | null // uuid
+          tenant_id: string | null // uuid
+          created_at: string | null // timestamp with timezone
+        }
+        Insert: {
+          id?: string
+          name?: string | null
+          port_type?: string | null
+          asset_id?: string | null
+          tenant_id?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string | null
+          port_type?: string | null
+          asset_id?: string | null
+          tenant_id?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ports_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      connections: {
+        Row: {
+          id: string // uuid
+          name: string | null
+          port_a_id: string | null // uuid
+          port_b_id: string | null // uuid
+          tenant_id: string | null // uuid
+          created_at: string | null // timestamp with timezone
+        }
+        Insert: {
+          id?: string
+          name?: string | null
+          port_a_id?: string | null
+          port_b_id?: string | null
+          tenant_id?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string | null
+          port_a_id?: string | null
+          port_b_id?: string | null
+          tenant_id?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connections_port_a_id_fkey"
+            columns: ["port_a_id"]
+            isOneToOne: false
+            referencedRelation: "ports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_port_b_id_fkey"
+            columns: ["port_b_id"]
+            isOneToOne: false
+            referencedRelation: "ports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_network_ports_stats: {
+        Args: { tenant_id_param: string } // uuid
+        Returns: { total_ports: number; used_ports: number }[] // BIGINT becomes number
+      }
+      get_fullest_rack: {
+        Args: { tenant_id_param: string } // uuid
+        Returns: { id: string; name: string; occupancy_percentage: number }[] // uuid, TEXT, NUMERIC
+      }
     }
     Enums: {
       [_ in never]: never
@@ -165,3 +334,5 @@ export type Enums<
   : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
   ? Database["public"]["Enums"][PublicEnumNameOrOptions]
   : never
+
+    

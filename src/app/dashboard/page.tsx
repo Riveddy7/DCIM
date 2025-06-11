@@ -1,25 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { BarChart3, HardDrive, Network, Users, Power, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 import { KPICard } from '@/components/dashboard/KPI_Card';
 import { AIAssistantWidget } from '@/components/dashboard/AI_Assistant_Widget';
-import { DonutChartWidget } from '@/components/dashboard/Donut_Chart_Widget';
 import { ToDoListWidget } from '@/components/dashboard/ToDo_List_Widget';
+import { NetworkPortsProgressCard } from '@/components/dashboard/NetworkPortsProgressCard';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-
-// Dummy data for charts - replace with actual data fetching
-const serverStatusData = [
-  { name: 'Online', value: 180, fill: 'hsl(var(--primary))' }, // purple
-  { name: 'Warning', value: 15, fill: 'hsl(48,96%,59%)' }, // yellow
-  { name: 'Offline', value: 5, fill: 'hsl(var(--destructive))' }, // red
-];
-
-const storageCapacityData = [
-  { name: 'Usado', value: 750, fill: 'hsl(var(--secondary))' }, // cyan
-  { name: 'Libre', value: 250, fill: 'hsl(var(--muted))' }, // gray
-];
-
+import { Archive, Network, HardDrive, Container, FileQuestion } from 'lucide-react';
 
 export default async function DashboardPage() {
   const supabase = createClient();
@@ -29,25 +16,75 @@ export default async function DashboardPage() {
   if (!user) {
     redirect('/login');
   }
+  const tenantId = user.id; 
 
-  // Fetch user profile or name - assuming user_metadata.full_name or a profiles table
-  // For simplicity, using email if full_name is not available
+  // --- Data Fetching ---
+  let totalRacks = 0;
+  const { count: racksCount, error: racksError } = await supabase
+    .from('racks')
+    .select('*', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId);
+  if (racksError) {
+    console.error('Error fetching total racks:', racksError.message);
+  } else {
+    totalRacks = racksCount || 0;
+  }
+
+  let networkPortsStats = { total_ports: 0, used_ports: 0 };
+  const { data: portsStatsData, error: portsStatsError } = await supabase
+    .rpc('get_network_ports_stats', { tenant_id_param: tenantId });
+  if (portsStatsError) {
+    console.error('Error fetching network ports stats:', portsStatsError.message);
+  } else if (portsStatsData && portsStatsData.length > 0) {
+    networkPortsStats = {
+        total_ports: Number(portsStatsData[0].total_ports) || 0,
+        used_ports: Number(portsStatsData[0].used_ports) || 0,
+    };
+  }
+  const availableNetworkPorts = networkPortsStats.total_ports - networkPortsStats.used_ports;
+
+  let totalAssets = 0;
+  const { count: assetsCount, error: assetsError } = await supabase
+    .from('assets')
+    .select('*', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId);
+  if (assetsError) {
+    console.error('Error fetching total assets:', assetsError.message);
+  } else {
+    totalAssets = assetsCount || 0;
+  }
+
+  let fullestRackInfo = { id: '', name: 'N/A', occupancy_percentage: 0 };
+  const { data: fullestRackData, error: fullestRackError } = await supabase
+    .rpc('get_fullest_rack', { tenant_id_param: tenantId });
+  if (fullestRackError) {
+    console.error('Error fetching fullest rack:', fullestRackError.message);
+  } else if (fullestRackData && fullestRackData.length > 0 && fullestRackData[0]) {
+    fullestRackInfo = {
+        id: fullestRackData[0].id || '',
+        name: fullestRackData[0].name || 'N/A',
+        occupancy_percentage: parseFloat(Number(fullestRackData[0].occupancy_percentage).toFixed(1)) || 0
+    };
+  }
+  
+  let unassignedAssets = 0;
+  const { count: unassignedAssetsCount, error: unassignedAssetsError } = await supabase
+    .from('assets')
+    .select('*', { count: 'exact', head: true })
+    .is('rack_id', null)
+    .eq('tenant_id', tenantId);
+  if (unassignedAssetsError) {
+    console.error('Error fetching unassigned assets:', unassignedAssetsError.message);
+  } else {
+    unassignedAssets = unassignedAssetsCount || 0;
+  }
+  
   const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario';
-
-  // Placeholder KPI data - replace with actual Supabase calls
-  const kpiData = {
-    activeRacks: Math.floor(Math.random() * 100) + 50,
-    totalAssets: Math.floor(Math.random() * 1000) + 500,
-    networkPorts: Math.floor(Math.random() * 5000) + 1000,
-    powerConsumption: Math.floor(Math.random() * 200) + 50, // kW
-    activeAlerts: Math.floor(Math.random() * 10),
-    teamMembers: Math.floor(Math.random() * 20) + 5,
-  };
   
   const handleLogout = async () => {
     "use server";
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    const supabaseClient = createClient(); // Renamed to avoid conflict
+    await supabaseClient.auth.signOut();
     redirect('/login');
   };
 
@@ -67,36 +104,42 @@ export default async function DashboardPage() {
         </form>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {/* Main AI Assistant Widget - Spanning more columns on larger screens */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="md:col-span-2 lg:col-span-2 lg:row-span-2">
            <AIAssistantWidget />
         </div>
 
-        {/* KPI Cards */}
-        <KPICard title="Racks Activos" value={kpiData.activeRacks} icon={BarChart3} iconClassName="text-green-400" />
-        <KPICard title="Activos Totales" value={kpiData.totalAssets} icon={HardDrive} iconClassName="text-blue-400" />
+        <Link href="/racks" className="contents">
+          <KPICard title="Total de Racks" value={totalRacks} icon={Archive} iconClassName="text-sky-400" />
+        </Link>
         
-        {/* Charts - could be single column on md, then move around */}
-        <div className="md:col-span-1 lg:col-span-2">
-          <DonutChartWidget data={serverStatusData} title="Estado de Servidores" />
-        </div>
-
-        <KPICard title="Puertos de Red" value={kpiData.networkPorts} icon={Network} iconClassName="text-cyan-400" />
-        <KPICard title="Consumo (kW)" value={`${kpiData.powerConsumption} kW`} icon={Power} iconClassName="text-orange-400" />
+        <KPICard title="Total de Activos" value={totalAssets} icon={HardDrive} iconClassName="text-blue-400" />
         
-        <div className="md:col-span-2 lg:col-span-2">
-          <DonutChartWidget data={storageCapacityData} title="Capacidad de Almacenamiento (TB)" description="Total: 1000 TB"/>
-        </div>
+        <NetworkPortsProgressCard 
+          totalPorts={networkPortsStats.total_ports}
+          usedPorts={networkPortsStats.used_ports}
+          className="md:col-span-2 lg:col-span-2"
+        />
         
-        <KPICard title="Alertas Activas" value={kpiData.activeAlerts} icon={AlertTriangle} iconClassName="text-red-500" />
-        <KPICard title="Miembros del Equipo" value={kpiData.teamMembers} icon={Users} iconClassName="text-indigo-400" />
+        <KPICard title="Puertos de Red Disponibles" value={availableNetworkPorts < 0 ? 0 : availableNetworkPorts} icon={Network} iconClassName="text-teal-400" />
         
-        {/* To-Do List - could span more width */}
-        <div className="md:col-span-3 lg:col-span-4">
+        <Link href={fullestRackInfo.id ? `/racks/${fullestRackInfo.id}` : '#'} className="contents">
+          <KPICard 
+            title="Rack Más Lleno" 
+            value={fullestRackInfo.name !== 'N/A' ? `${fullestRackInfo.name}: ${fullestRackInfo.occupancy_percentage}%` : 'N/A'} 
+            icon={Container} 
+            iconClassName="text-amber-400" 
+          />
+        </Link>
+        
+        <KPICard title="Activos Sin Asignar" value={unassignedAssets} icon={FileQuestion} iconClassName="text-rose-400" />
+        
+        <div className="md:col-span-2 lg:col-span-4">
           <ToDoListWidget />
         </div>
       </div>
     </div>
   );
 }
+
+    
