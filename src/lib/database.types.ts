@@ -71,6 +71,9 @@ export type Database = {
         Row: {
           id: string // uuid
           name: string | null
+          description: string | null // New field
+          location: string | null // New field
+          status: string | null // New field (e.g., 'Online', 'Offline', 'Maintenance')
           total_u: number | null // integer or numeric
           tenant_id: string | null // uuid
           created_at: string | null // timestamp with timezone
@@ -78,6 +81,9 @@ export type Database = {
         Insert: {
           id?: string
           name?: string | null
+          description?: string | null
+          location?: string | null
+          status?: string | null
           total_u?: number | null
           tenant_id?: string | null
           created_at?: string | null
@@ -85,6 +91,9 @@ export type Database = {
         Update: {
           id?: string
           name?: string | null
+          description?: string | null
+          location?: string | null
+          status?: string | null
           total_u?: number | null
           tenant_id?: string | null
           created_at?: string | null
@@ -244,6 +253,21 @@ export type Database = {
       get_fullest_rack: {
         Args: { tenant_id_param: string } // uuid
         Returns: { id: string; name: string; occupancy_percentage: number }[] // uuid, TEXT, NUMERIC
+      }
+      get_racks_overview: { // New RPC function
+        Args: { tenant_id_param: string } // uuid
+        Returns: {
+          id: string // uuid
+          name: string | null
+          description: string | null
+          location: string | null
+          status: string | null
+          total_u: number | null
+          occupied_u: number | null // BIGINT becomes number
+          asset_count: number | null // BIGINT becomes number
+          total_rack_ports: number | null // BIGINT becomes number
+          used_rack_ports: number | null // BIGINT becomes number
+        }[]
       }
     }
     Enums: {
