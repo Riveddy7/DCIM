@@ -68,24 +68,30 @@ export type Database = {
           }
         ];
       }
-      locations: { // New table for locations
+      locations: {
         Row: {
-          id: string // uuid
+          id: string 
           name: string | null
-          tenant_id: string | null // uuid
-          created_at: string | null // timestamp with timezone
+          tenant_id: string | null 
+          created_at: string | null 
+          parent_location_id: string | null 
+          description: string | null 
         }
         Insert: {
           id?: string
           name?: string | null
           tenant_id?: string | null
           created_at?: string | null
+          parent_location_id?: string | null
+          description?: string | null
         }
         Update: {
           id?: string
           name?: string | null
           tenant_id?: string | null
           created_at?: string | null
+          parent_location_id?: string | null
+          description?: string | null
         }
         Relationships: [
           {
@@ -94,15 +100,22 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_parent_location_id_fkey"
+            columns: ["parent_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
           }
         ]
       }
       racks: {
         Row: {
-          id: string // uuid
+          id: string 
           name: string | null
           description: string | null
-          location_id: string | null // Changed from location: string to location_id: string (uuid)
+          location_id: string | null 
           status: string | null 
           total_u: number | null 
           tenant_id: string | null 
@@ -112,7 +125,7 @@ export type Database = {
           id?: string
           name?: string | null
           description?: string | null
-          location_id?: string | null // Changed
+          location_id?: string | null 
           status?: string | null
           total_u?: number | null
           tenant_id?: string | null
@@ -122,7 +135,7 @@ export type Database = {
           id?: string
           name?: string | null
           description?: string | null
-          location_id?: string | null // Changed
+          location_id?: string | null 
           status?: string | null
           total_u?: number | null
           tenant_id?: string | null
@@ -136,7 +149,7 @@ export type Database = {
             referencedRelation: "users" 
             referencedColumns: ["id"]
           },
-          { // New relationship for location_id
+          { 
             foreignKeyName: "racks_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
@@ -297,8 +310,8 @@ export type Database = {
           id: string 
           name: string | null
           description: string | null
-          location_id: string | null // Changed
-          location_name: string | null // Added
+          location_id: string | null 
+          location_name: string | null 
           status: string | null
           total_u: number | null
           occupied_u: number | null 
@@ -396,7 +409,9 @@ export type Enums<
   : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
   ? Database["public"]["Enums"][PublicEnumNameOrOptions]
   : never
-
+ VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+ VITE_SUPABASE_URL="http://localhost:54321"
     
-
-    
+VITE_SUPABASE_URL="http://127.0.0.1:54321"
+VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+```
