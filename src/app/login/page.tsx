@@ -39,8 +39,14 @@ export default function LoginPage() {
         title: 'Inicio de sesión exitoso',
         description: 'Redirigiendo al dashboard...',
       });
+      // Primero, refresca el estado del servidor. Esto permite que el middleware
+      // o los componentes del servidor reconozcan la nueva sesión.
+      router.refresh();
+      // Luego, intenta la navegación al dashboard.
+      // Si router.refresh() hace que el middleware redirija (porque ahora hay una sesión
+      // y el usuario está en /login), este push podría incluso ser redundante,
+      // pero es una buena medida.
       router.push('/dashboard');
-      router.refresh(); // Ensure layout re-renders with new auth state
     }
     setIsLoading(false);
   };
