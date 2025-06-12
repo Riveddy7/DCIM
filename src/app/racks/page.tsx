@@ -10,15 +10,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RackCard } from '@/components/racks/RackCard';
 import { CreateRackForm } from '@/components/racks/CreateRackForm'; 
-import { CreateLocationForm } from '@/components/locations/CreateLocationForm'; // New
+// CreateLocationForm import removed as the button/dialog is removed from this page
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'; 
 import { PlusCircle, Search, LayoutDashboard, ListFilter, MapPin, Loader2 } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 import { useToast } from '@/hooks/use-toast';
 
-
 type RackOverview = Database['public']['Functions']['get_racks_overview']['Returns'][number];
-type Location = Database['public']['Tables']['locations']['Row'];
+type Location = Pick<Database['public']['Tables']['locations']['Row'], 'id' | 'name'>;
 
 
 export default function RacksPage() {
@@ -31,25 +30,41 @@ export default function RacksPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [racksError, setRacksError] = useState<string | null>(null);
   const [isCreateRackDialogOpen, setIsCreateRackDialogOpen] = useState(false);
-  const [isCreateLocationDialogOpen, setIsCreateLocationDialogOpen] = useState(false); // New
-  const [userId, setUserId] = useState<string | null>(null);
+  // State for Create Location Dialog removed
+  
+  const [tenantId, setTenantId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
+      
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        toast({ title: 'Error de autenticación', description: 'No se pudo obtener el usuario.', variant: 'destructive' });
-        setIsLoading(false);
+        toast({ title: 'Error de autenticación', description: 'No se pudo obtener el usuario. Redirigiendo al login.', variant: 'destructive' });
         router.push('/login'); 
+        setIsLoading(false);
         return;
       }
-      setUserId(user.id);
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile || !profile.tenant_id) {
+          toast({ title: 'Error de perfil', description: 'No se pudo encontrar el perfil o tenant del usuario.', variant: 'destructive' });
+          setIsLoading(false);
+          return;
+      }
+      
+      const currentTenantId = profile.tenant_id;
+      setTenantId(currentTenantId); 
 
       const [racksResult, locationsResult] = await Promise.all([
-        supabase.rpc('get_racks_overview', { tenant_id_param: user.id }),
-        supabase.from('locations').select('id, name').eq('tenant_id', user.id)
+        supabase.rpc('get_racks_overview', { tenant_id_param: currentTenantId }),
+        supabase.from('locations').select('id, name').eq('tenant_id', currentTenantId)
       ]);
 
       const { data: racksData, error: racksRpcError } = racksResult;
@@ -83,32 +98,32 @@ export default function RacksPage() {
     : ["Todos los Estados"];
 
 
-  const handleCreateRackSuccess = () => {
-    setIsCreateRackDialogOpen(false);
-    router.refresh(); 
-    async function refetchRacks() {
-        if (!userId) return;
-        const { data: racksData, error: racksRpcError } = await supabase
-        .rpc('get_racks_overview', { tenant_id_param: userId });
-        if (!racksRpcError) setRacks(racksData || []);
+  const refetchData = async () => {
+    if (!tenantId) return; // Ensure tenantId is available
+    setIsLoading(true); // Set loading state true while refetching
+    const [racksResult, locationsResult] = await Promise.all([
+        supabase.rpc('get_racks_overview', { tenant_id_param: tenantId }),
+        supabase.from('locations').select('id, name').eq('tenant_id', tenantId)
+    ]);
+    if (!racksResult.error) {
+        setRacks(racksResult.data || []);
+    } else {
+        toast({ title: 'Error al recargar racks', description: racksResult.error.message, variant: 'destructive' });
     }
-    refetchRacks();
+    if (!locationsResult.error) {
+        setLocations(locationsResult.data || []);
+    } else {
+        toast({ title: 'Error al recargar ubicaciones', description: locationsResult.error.message, variant: 'destructive' });
+    }
+    setIsLoading(false); // Set loading state false after refetching
   };
 
-  const handleCreateLocationSuccess = () => {
-    setIsCreateLocationDialogOpen(false);
-    router.refresh(); // Refreshes data, including locations for selects
-    async function refetchData() { // Also refetch locations for the select dropdowns
-        if (!userId) return;
-        const [racksResult, locationsResult] = await Promise.all([
-            supabase.rpc('get_racks_overview', { tenant_id_param: userId }),
-            supabase.from('locations').select('id, name').eq('tenant_id', userId)
-        ]);
-        if (!racksResult.error) setRacks(racksResult.data || []);
-        if (!locationsResult.error) setLocations(locationsResult.data || []);
-    }
-    refetchData();
+  const handleCreateRackSuccess = () => {
+    setIsCreateRackDialogOpen(false);
+    refetchData(); // Refetch all data including locations as new rack might affect overall view
   };
+
+  // handleCreateLocationSuccess removed as the button/dialog is removed
 
   if (isLoading) {
     return (
@@ -171,26 +186,7 @@ export default function RacksPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Dialog open={isCreateLocationDialogOpen} onOpenChange={setIsCreateLocationDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="mt-2 w-full border-purple-500/30 text-purple-300 hover:bg-purple-500/10 hover:text-purple-300">
-                  <PlusCircle className="mr-2 h-4 w-4" /> Nueva Ubicación
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="glassmorphic-card border-purple-500/40 text-gray-50 sm:max-w-[525px]">
-                <DialogHeader>
-                  <DialogTitle className="font-headline text-2xl text-gray-50">Crear Nueva Ubicación</DialogTitle>
-                </DialogHeader>
-                {userId && (
-                  <CreateLocationForm 
-                    existingLocations={locations} 
-                    tenantId={userId} 
-                    onSuccess={handleCreateLocationSuccess}
-                    onCancel={() => setIsCreateLocationDialogOpen(false)}
-                  />
-                )}
-              </DialogContent>
-            </Dialog>
+            {/* Button for "+ Nueva Ubicación" and its Dialog REMOVED */}
           </div>
         </div>
         <div className="mt-6 flex justify-end">
@@ -205,10 +201,10 @@ export default function RacksPage() {
                 <DialogHeader>
                   <DialogTitle className="font-headline text-2xl text-gray-50">Crear Nuevo Rack</DialogTitle>
                 </DialogHeader>
-                {userId && (
+                {tenantId && (
                   <CreateRackForm 
                     locations={locations} 
-                    tenantId={userId} 
+                    tenantId={tenantId} 
                     onSuccess={handleCreateRackSuccess}
                     onCancel={() => setIsCreateRackDialogOpen(false)}
                   />
@@ -228,7 +224,7 @@ export default function RacksPage() {
       {!racksError && !isLoading && racks.length === 0 && (
         <div className="text-center text-gray-400 py-10">
           <p className="text-xl">No se encontraron racks.</p>
-          <p>Comienza creando un nuevo rack.</p>
+          <p>Comienza creando una nueva ubicación y luego un nuevo rack.</p>
         </div>
       )}
 

@@ -1,3 +1,4 @@
+
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -16,9 +17,20 @@ export default async function DashboardPage() {
   if (!user) {
     redirect('/login');
   }
-  const tenantId = user.id; 
 
-  // --- Data Fetching ---
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('tenant_id, full_name')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !profile || !profile.tenant_id) {
+    console.error('Error fetching profile or tenant ID:', profileError?.message);
+    redirect('/login');
+  }
+
+  const tenantId = profile.tenant_id;
+
   let totalRacks = 0;
   const { count: racksCount, error: racksError } = await supabase
     .from('racks')
@@ -79,11 +91,11 @@ export default async function DashboardPage() {
     unassignedAssets = unassignedAssetsCount || 0;
   }
   
-  const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario';
+  const userName = profile.full_name || user.email?.split('@')[0] || 'Usuario';
   
   const handleLogout = async () => {
     "use server";
-    const supabaseClient = createClient(); // Renamed to avoid conflict
+    const supabaseClient = createClient();
     await supabaseClient.auth.signOut();
     redirect('/login');
   };
@@ -105,24 +117,17 @@ export default async function DashboardPage() {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Item 3: AI Assistant Widget - Manteniendo su posición prominente */}
         <div className="md:col-span-2 lg:col-span-2 lg:row-span-2">
            <AIAssistantWidget />
         </div>
 
+        {/* Item 1: Total de Racks */}
         <Link href="/racks" className="contents">
           <KPICard title="Total de Racks" value={totalRacks} icon={Archive} iconClassName="text-sky-400" />
         </Link>
         
-        <KPICard title="Total de Activos" value={totalAssets} icon={HardDrive} iconClassName="text-blue-400" />
-        
-        <NetworkPortsProgressCard 
-          totalPorts={networkPortsStats.total_ports}
-          usedPorts={networkPortsStats.used_ports}
-          className="md:col-span-2 lg:col-span-2"
-        />
-        
-        <KPICard title="Puertos de Red Disponibles" value={availableNetworkPorts < 0 ? 0 : availableNetworkPorts} icon={Network} iconClassName="text-teal-400" />
-        
+        {/* Item 2: Rack Más Lleno */}
         <Link href={fullestRackInfo.id ? `/racks/${fullestRackInfo.id}` : '#'} className="contents">
           <KPICard 
             title="Rack Más Lleno" 
@@ -132,8 +137,25 @@ export default async function DashboardPage() {
           />
         </Link>
         
+        {/* Item 4: Total de Activos - Enlace a /assets */}
+        <Link href="/assets" className="contents">
+          <KPICard title="Total de Activos" value={totalAssets} icon={HardDrive} iconClassName="text-blue-400" />
+        </Link>
+        
+        {/* Item 5: Puertos de Red Disponibles */}
+        <KPICard title="Puertos de Red Disponibles" value={availableNetworkPorts < 0 ? 0 : availableNetworkPorts} icon={Network} iconClassName="text-teal-400" />
+        
+        {/* NetworkPortsProgressCard (Widget de progreso de puertos, Widget 2 anterior) */}
+        <NetworkPortsProgressCard 
+          totalPorts={networkPortsStats.total_ports}
+          usedPorts={networkPortsStats.used_ports}
+          className="md:col-span-2 lg:col-span-2"
+        />
+        
+        {/* Item 6: Activos Sin Asignar */}
         <KPICard title="Activos Sin Asignar" value={unassignedAssets} icon={FileQuestion} iconClassName="text-rose-400" />
         
+        {/* Item 7: To-Do List - Ocupa todo el ancho en la parte inferior */}
         <div className="md:col-span-2 lg:col-span-4">
           <ToDoListWidget />
         </div>
@@ -141,5 +163,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-
-    
