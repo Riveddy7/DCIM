@@ -20,7 +20,9 @@ export function RackDetailView({ rackData }: RackDetailViewProps) {
     setSelectedAssetId(assetId);
   };
 
-  const selectedAsset = rackData.assets.find(asset => asset.id === selectedAssetId) || null;
+  // Ensure rackData.assets is an array before finding
+  const assetsArray = Array.isArray(rackData.assets) ? rackData.assets : [];
+  const selectedAsset = assetsArray.find(asset => asset.id === selectedAssetId) || null;
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
@@ -29,7 +31,10 @@ export function RackDetailView({ rackData }: RackDetailViewProps) {
           <h1 className="text-3xl font-bold font-headline text-gray-50">
             {rackData.name || 'Detalles del Rack'}
           </h1>
-          <p className="text-gray-400">{rackData.description || 'Visualiza y gestiona los activos de este rack.'}</p>
+          {/* According to new schema, racks have 'notes', not 'description'. 
+              If notes are to be displayed, query them and use rackData.notes.
+              For now, using a generic message. */}
+          <p className="text-gray-400">Visualiza y gestiona los activos de este rack.</p>
         </div>
         <div className="flex gap-2">
           <Link href="/racks">
@@ -51,8 +56,8 @@ export function RackDetailView({ rackData }: RackDetailViewProps) {
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="lg:w-1/3 xl:w-1/4">
           <RackVisualizer
-            total_u={rackData.total_u}
-            assets={rackData.assets}
+            total_u={rackData.total_u} // total_u is not nullable in new schema
+            assets={assetsArray} // Pass the validated assets array
             selectedAssetId={selectedAssetId}
             onAssetSelect={handleAssetSelect}
           />

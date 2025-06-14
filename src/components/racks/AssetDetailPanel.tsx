@@ -5,13 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Server, Power, Info, ListTree } from 'lucide-react';
-import type { AssetWithPorts, Json } from '@/lib/database.types';
+import type { AssetWithPorts, Json, PortDetails } from '@/lib/database.types'; // Added PortDetails
+import { cn } from '@/lib/utils'; // cn was missing, added import
 
 interface AssetDetailPanelProps {
   asset: AssetWithPorts | null;
 }
 
-// Helper function to format keys (e.g., 'serial_number' to 'Serial Number')
 const formatKey = (key: string): string => {
   return key
     .split('_')
@@ -34,7 +34,7 @@ const renderJsonDetails = (details: Json | undefined | null): React.ReactNode =>
       {entries.map(([key, value]) => (
         <li key={key} className="flex justify-between">
           <span className="text-gray-400">{formatKey(key)}:</span>
-          <span className="text-gray-200 text-right">{String(value)}</span>
+          <span className="text-gray-200 text-right break-all">{String(value)}</span>
         </li>
       ))}
     </ul>
@@ -54,10 +54,16 @@ export function AssetDetailPanel({ asset }: AssetDetailPanelProps) {
     );
   }
 
-  const statusColor = asset.status === 'Online' ? 'bg-green-500/80 text-green-50' :
-                      asset.status === 'Offline' ? 'bg-red-500/80 text-red-50' :
-                      asset.status === 'Maintenance' ? 'bg-yellow-500/80 text-yellow-50' :
+  const statusText = asset.status || 'Desconocido';
+  // Define statusColor based on common asset statuses (customize as needed)
+  const statusColor = 
+    statusText.toLowerCase() === 'in_production' ? 'bg-green-500/80 text-green-50' :
+    statusText.toLowerCase() === 'in_storage' ? 'bg-yellow-500/80 text-yellow-50' :
+    statusText.toLowerCase() === 'offline' ? 'bg-red-500/80 text-red-50' :
+    statusText.toLowerCase() === 'maintenance' ? 'bg-orange-500/80 text-orange-50' :
                       'bg-gray-500/80 text-gray-50';
+
+  const assetPorts: PortDetails[] = Array.isArray(asset.ports) ? asset.ports : [];
 
   return (
     <Card className="glassmorphic-card h-full flex flex-col">
@@ -67,7 +73,7 @@ export function AssetDetailPanel({ asset }: AssetDetailPanelProps) {
             <Server className="mr-3 h-6 w-6 text-primary" />
             {asset.name || 'Activo Sin Nombre'}
           </CardTitle>
-          <Badge className={cn("text-xs", statusColor)}>{asset.status || 'Desconocido'}</Badge>
+          <Badge className={cn("text-xs", statusColor)}>{statusText}</Badge>
         </div>
         <CardDescription className="text-gray-400">{asset.asset_type || 'Tipo no especificado'}</CardDescription>
       </CardHeader>
@@ -85,7 +91,7 @@ export function AssetDetailPanel({ asset }: AssetDetailPanelProps) {
             </ul>
           </div>
 
-          {asset.details && (
+          {asset.details && Object.keys(asset.details).length > 0 && (
             <div>
               <h4 className="font-semibold text-gray-300 mb-2 flex items-center">
                 <ListTree className="mr-2 h-4 w-4 text-lime-400"/>
@@ -98,17 +104,18 @@ export function AssetDetailPanel({ asset }: AssetDetailPanelProps) {
           <div>
             <h4 className="font-semibold text-gray-300 mb-2 flex items-center">
               <Power className="mr-2 h-4 w-4 text-rose-400"/>
-              Puertos ({asset.ports?.length || 0})
+              Puertos ({assetPorts.length || 0})
             </h4>
-            {asset.ports && asset.ports.length > 0 ? (
+            {assetPorts.length > 0 ? (
               <ul className="space-y-2 text-sm max-h-60 overflow-y-auto pr-2">
-                {asset.ports.map(port => (
+                {assetPorts.map(port => (
                   <li key={port.id} className="p-2 bg-gray-800/30 rounded-md border border-purple-500/20">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-200 font-medium">{port.name || 'Puerto sin nombre'}</span>
                       <Badge variant="outline" className="text-xs border-cyan-500/50 text-cyan-300">{port.port_type || 'N/A'}</Badge>
                     </div>
-                    <p className="text-xs text-gray-500 font-mono">{port.id}</p>
+                    {/* Displaying port ID can be verbose, uncomment if needed */}
+                    {/* <p className="text-xs text-gray-500 font-mono">{port.id}</p> */}
                   </li>
                 ))}
               </ul>
@@ -121,6 +128,3 @@ export function AssetDetailPanel({ asset }: AssetDetailPanelProps) {
     </Card>
   );
 }
-
-// Helper cn function if not globally available (though it should be via @/lib/utils)
-const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
