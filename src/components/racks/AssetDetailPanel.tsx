@@ -5,11 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Server, Power, Info, ListTree } from 'lucide-react';
-import type { AssetWithPorts, Json, PortDetails } from '@/lib/database.types'; // Added PortDetails
-import { cn } from '@/lib/utils'; // cn was missing, added import
+import type { AssetWithPorts, Json, PortDetails } from '@/lib/database.types';
+import { cn } from '@/lib/utils';
 
 interface AssetDetailPanelProps {
   asset: AssetWithPorts | null;
+  tenantId: string; // Keep for potential future use (e.g., actions)
+  onAssetUpdateSuccess: () => void; // Keep for potential future use
 }
 
 const formatKey = (key: string): string => {
@@ -41,7 +43,7 @@ const renderJsonDetails = (details: Json | undefined | null): React.ReactNode =>
   );
 };
 
-export function AssetDetailPanel({ asset }: AssetDetailPanelProps) {
+export function AssetDetailPanel({ asset, tenantId, onAssetUpdateSuccess }: AssetDetailPanelProps) {
   if (!asset) {
     return (
       <Card className="glassmorphic-card h-full flex flex-col items-center justify-center">
@@ -55,8 +57,7 @@ export function AssetDetailPanel({ asset }: AssetDetailPanelProps) {
   }
 
   const statusText = asset.status || 'Desconocido';
-  // Define statusColor based on common asset statuses (customize as needed)
-  const statusColor = 
+  const statusColor =
     statusText.toLowerCase() === 'in_production' ? 'bg-green-500/80 text-green-50' :
     statusText.toLowerCase() === 'in_storage' ? 'bg-yellow-500/80 text-yellow-50' :
     statusText.toLowerCase() === 'offline' ? 'bg-red-500/80 text-red-50' :
@@ -114,8 +115,6 @@ export function AssetDetailPanel({ asset }: AssetDetailPanelProps) {
                       <span className="text-gray-200 font-medium">{port.name || 'Puerto sin nombre'}</span>
                       <Badge variant="outline" className="text-xs border-cyan-500/50 text-cyan-300">{port.port_type || 'N/A'}</Badge>
                     </div>
-                    {/* Displaying port ID can be verbose, uncomment if needed */}
-                    {/* <p className="text-xs text-gray-500 font-mono">{port.id}</p> */}
                   </li>
                 ))}
               </ul>

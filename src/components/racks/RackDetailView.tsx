@@ -6,23 +6,31 @@ import Link from 'next/link';
 import { RackVisualizer } from './RackVisualizer';
 import { AssetDetailPanel } from './AssetDetailPanel';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Edit3, Trash2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import type { RackWithAssetsAndPorts, AssetWithPorts } from '@/lib/database.types';
+import { useRouter } from 'next/navigation'; // For router.refresh
 
 interface RackDetailViewProps {
   rackData: RackWithAssetsAndPorts;
+  tenantId: string; // Added tenantId
 }
 
-export function RackDetailView({ rackData }: RackDetailViewProps) {
+export function RackDetailView({ rackData, tenantId }: RackDetailViewProps) {
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleAssetSelect = (assetId: string) => {
     setSelectedAssetId(assetId);
   };
 
-  // Ensure rackData.assets is an array before finding
   const assetsArray = Array.isArray(rackData.assets) ? rackData.assets : [];
   const selectedAsset = assetsArray.find(asset => asset.id === selectedAssetId) || null;
+
+  const handleAssetUpdateSuccess = () => {
+    router.refresh(); // Refresh data on the page
+    // Optionally, you might want to re-fetch just the selected asset or clear selection
+    // depending on UX preference, but router.refresh() handles general data update.
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
@@ -31,10 +39,7 @@ export function RackDetailView({ rackData }: RackDetailViewProps) {
           <h1 className="text-3xl font-bold font-headline text-gray-50">
             {rackData.name || 'Detalles del Rack'}
           </h1>
-          {/* According to new schema, racks have 'notes', not 'description'. 
-              If notes are to be displayed, query them and use rackData.notes.
-              For now, using a generic message. */}
-          <p className="text-gray-400">Visualiza y gestiona los activos de este rack.</p>
+          <p className="text-gray-400">Visualiza y gestiona los activos de este rack. {rackData.notes ? `Notas: ${rackData.notes}` : ''}</p>
         </div>
         <div className="flex gap-2">
           <Link href="/racks">
@@ -43,29 +48,27 @@ export function RackDetailView({ rackData }: RackDetailViewProps) {
               Lista de Racks
             </Button>
           </Link>
-          {/* Placeholder for Edit/Delete buttons */}
-          {/* <Button variant="outline" size="icon" className="border-amber-500/50 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300">
-            <Edit3 className="h-4 w-4" />
-          </Button>
-          <Button variant="destructiveOutline" size="icon" className="border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300">
-            <Trash2 className="h-4 w-4" />
-          </Button> */}
         </div>
       </header>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        <div className="lg:w-1/3 xl:w-1/4">
+        <div className="lg:w-1/2"> {/* Adjusted for 50% width */}
           <RackVisualizer
-            total_u={rackData.total_u} // total_u is not nullable in new schema
-            assets={assetsArray} // Pass the validated assets array
+            total_u={rackData.total_u}
+            assets={assetsArray}
             selectedAssetId={selectedAssetId}
             onAssetSelect={handleAssetSelect}
           />
         </div>
-        <div className="lg:w-2/3 xl:w-3/4">
-          <AssetDetailPanel asset={selectedAsset} />
+        <div className="lg:w-1/2"> {/* Adjusted for 50% width */}
+          <AssetDetailPanel
+            asset={selectedAsset}
+            tenantId={tenantId}
+            onAssetUpdateSuccess={handleAssetUpdateSuccess}
+          />
         </div>
       </div>
     </div>
   );
 }
+
