@@ -26,7 +26,6 @@ export default async function DashboardPage() {
 
   if (profileError || !profile || !profile.tenant_id) {
     console.error('Error fetching profile or tenant ID:', profileError?.message);
-    // It's good practice to redirect to login or an error page if profile is missing.
     redirect('/login');
   }
 
@@ -55,7 +54,6 @@ export default async function DashboardPage() {
         used_ports: Number(portsStatsData[0].used_ports) || 0,
     };
   }
-  // const availableNetworkPorts = networkPortsStats.total_ports - networkPortsStats.used_ports; // This KPI card is not in the 7-item layout
 
   let totalAssets = 0;
   const { count: assetsCount, error: assetsError } = await supabase
@@ -119,22 +117,22 @@ export default async function DashboardPage() {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Item 1: Total de Racks (Yellow Block) */}
+        {/* Item 1: Total de Racks */}
         <Link href="/racks" className="contents">
           <KPICard title="Total de Racks" value={totalRacks} icon={Archive} iconClassName="text-sky-400" />
         </Link>
         
-        {/* Item 3: AI Assistant Widget (Orange Block - spans 2 cols, 2 rows) */}
+        {/* Item 3: AI Assistant Widget - Spans 2 cols, 2 rows */}
         <div className="lg:col-span-2 lg:row-span-2">
            <AIAssistantWidget />
         </div>
         
-        {/* Item 4: Total de Activos (Light Blue Block) */}
+        {/* Item 4: Total de Activos */}
         <Link href="/assets" className="contents">
           <KPICard title="Total de Activos" value={totalAssets} icon={HardDrive} iconClassName="text-blue-400" />
         </Link>
         
-        {/* Item 2: Rack Más Lleno (Blue Block - flows under Item 1) */}
+        {/* Item 2: Rack Más Lleno - Flows under Item 1 */}
         <Link href={fullestRackInfo.id ? `/racks/${fullestRackInfo.id}` : '#'} className="contents">
           <KPICard 
             title="Rack Más Lleno" 
@@ -144,26 +142,21 @@ export default async function DashboardPage() {
           />
         </Link>
         
-        {/* Item 7: To-Do List (Black Block - flows under Item 4, beside AI Assistant's lower part) */}
-        {/* Forcing row span to attempt to match height of AI assistant if desired, or let content define height */}
-        <div className="lg:col-span-1 lg:row-span-1"> {/* Changed from row-span-2 to allow items below */}
+        {/* Item 7: To-Do List - Spans 2 rows to align with items below it in other columns */}
+        <div className="lg:col-span-1 lg:row-span-2">
           <ToDoListWidget />
         </div>
         
-        {/* Item 5: "Puertos disponibles" (Green Block - NetworkPortsProgressCard) */}
+        {/* Item 5: Puertos de Red (Disponibilidad) - Spans 2 columns */}
         <NetworkPortsProgressCard 
           totalPorts={networkPortsStats.total_ports}
           usedPorts={networkPortsStats.used_ports}
-          className="md:col-span-2 lg:col-span-2" /* Spans 2 columns */
+          className="lg:col-span-2" 
         />
         
-        {/* Item 6: Activos Sin Asignar (Light Yellow Block) */}
+        {/* Item 6: Activos Sin Asignar */}
         <KPICard title="Activos Sin Asignar" value={unassignedAssets} icon={FileQuestion} iconClassName="text-rose-400" />
         
-        {/* The KPICard for "Puertos de Red Disponibles" is not part of the 7-item visual layout specified by the image.
-            If it needs to be on the dashboard, it would be an 8th item.
-            <KPICard title="Puertos de Red Disponibles" value={availableNetworkPorts < 0 ? 0 : availableNetworkPorts} icon={Network} iconClassName="text-teal-400" />
-        */}
       </div>
     </div>
   );
