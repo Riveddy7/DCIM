@@ -85,4 +85,3 @@ export function RackVisualizer({ total_u, assets, selectedAssetId, onAssetSelect
     </div>
   );
 }
-```
