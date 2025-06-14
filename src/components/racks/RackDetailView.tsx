@@ -64,4 +64,3 @@ export function RackDetailView({ rackData }: RackDetailViewProps) {
     </div>
   );
 }
-```
