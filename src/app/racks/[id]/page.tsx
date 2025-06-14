@@ -19,6 +19,19 @@ export default async function RackDetailPage({ params }: RackDetailPageProps) {
     redirect('/login');
   }
 
+  // The user object in Supabase typically uses user.id for the tenant_id in multi-tenant setups.
+  // If your tenant_id is stored elsewhere (e.g., in a profiles table), adjust this.
+  // For this example, let's assume user.id is the tenant_id.
+  // If you have a separate tenant_id in a 'profiles' table, you'd fetch it first:
+  // const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single();
+  // const tenantId = profile?.tenant_id;
+  // if (!tenantId) { /* handle error */ }
+  // Then use tenantId in the .eq('tenant_id', tenantId) clause below.
+  // For now, I'll use user.id directly if your RLS policies are set up for it,
+  // or if racks table has a user_id column that directly maps to auth.users.id.
+  // Given the schema, 'tenant_id' seems to be the intended column on 'racks'.
+  // Let's assume user.id from auth is used as tenant_id for filtering.
+
   const rackId = params.id;
 
   const { data: rackData, error } = await supabase
@@ -31,6 +44,11 @@ export default async function RackDetailPage({ params }: RackDetailPageProps) {
       )
     `)
     .eq('id', rackId)
+    // Assuming RLS handles tenancy or tenant_id is directly user.id
+    // If you have a tenant_id on the racks table linked to a profiles table or similar,
+    // you would fetch the user's tenant_id first and then use it here.
+    // For instance: .eq('tenant_id', user.id) if user.id is the tenant identifier for racks.
+    // Based on database.types.ts, racks have a tenant_id which is likely user.id
     .eq('tenant_id', user.id) 
     .single<RackWithAssetsAndPorts>();
 
@@ -73,5 +91,3 @@ export default async function RackDetailPage({ params }: RackDetailPageProps) {
   
   return <RackDetailView rackData={rackData} />;
 }
-
-```
