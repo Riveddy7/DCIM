@@ -18,28 +18,29 @@ export function RackVisualizer({ total_u, assets, selectedAssetId, onAssetSelect
   return (
     <div className="glassmorphic-card p-4">
       <h3 className="font-headline text-lg text-gray-200 mb-4 text-center">Visualización del Rack</h3>
-      <div className="flex gap-2" style={{ minHeight: `${total_u * 2.25}rem` }}>
-        {/* U Markers: Removed flex-col-reverse to display 1 at the top */}
+      <div className="flex gap-2" style={{ minHeight: `${total_u * 2.25}rem` }}> {/* Base height on U count */}
+        {/* Left U Markers */}
         <div className="flex flex-col justify-between items-center text-xs text-gray-400 pr-2 border-r border-purple-500/20 select-none">
           {uMarkers.map(u => (
-            <div key={`marker-${u}`} className="h-8 flex items-center">
+            <div key={`marker-left-${u}`} className="h-8 flex items-center"> {/* Consistent height for U markers */}
               {u}
             </div>
           ))}
         </div>
 
+        {/* Asset Area */}
         <div
           className="relative flex-grow grid"
           style={{
-            gridTemplateRows: `repeat(${total_u}, minmax(0, 1fr))`,
-            gap: '1px',
+            gridTemplateRows: `repeat(${total_u}, minmax(0, 1fr))`, // Each row is 1U
+            gap: '1px', // Small gap between U slots
           }}
         >
-          {/* Render empty U slots first as background */}
+          {/* Render empty U slots first as background guides */}
           {Array.from({ length: total_u }, (_, i) => i + 1).map(uRow => (
              <div
                 key={`empty-u-${uRow}`}
-                className="border-b border-dashed border-gray-700/30"
+                className="border-b border-dashed border-gray-700/30" // Style for empty U visual guide
                 style={{ gridRowStart: uRow, gridRowEnd: uRow + 1, minHeight: '2rem', zIndex: 0}}
              />
            ))}
@@ -69,7 +70,10 @@ export function RackVisualizer({ total_u, assets, selectedAssetId, onAssetSelect
                 style={{
                   gridRowStart: gridRowStart,
                   gridRowEnd: `span ${asset.size_u}`,
-                  minHeight: `calc(${asset.size_u * 2}rem - 1px*(${asset.size_u - 1}))`,
+                  // Height of each U slot is implicitly defined by the parent's minHeight and grid-template-rows.
+                  // For an asset spanning N U's, it takes N grid rows.
+                  // minHeight ensures the asset text is visible and clickable.
+                  minHeight: `calc(${asset.size_u * 2}rem - ${(asset.size_u -1) * 1}px)`, // Adjust height based on U size, considering the gap
                   zIndex: asset.id === selectedAssetId ? 10 : 1, // Selected asset on top
                 }}
               >
@@ -77,6 +81,15 @@ export function RackVisualizer({ total_u, assets, selectedAssetId, onAssetSelect
               </div>
             );
           })}
+        </div>
+
+        {/* Right U Markers */}
+        <div className="flex flex-col justify-between items-center text-xs text-gray-400 pl-2 border-l border-purple-500/20 select-none">
+          {uMarkers.map(u => (
+            <div key={`marker-right-${u}`} className="h-8 flex items-center"> {/* Consistent height for U markers */}
+              {u}
+            </div>
+          ))}
         </div>
       </div>
     </div>
