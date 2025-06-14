@@ -7,6 +7,19 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export interface RackWithAssetsAndPorts extends Database['public']['Tables']['racks']['Row'] {
+  assets: AssetWithPorts[];
+}
+
+export interface AssetWithPorts extends Database['public']['Tables']['assets']['Row'] {
+  ports: Database['public']['Tables']['ports']['Row'][];
+  details: Json | null; // Ensure details is part of the Asset definition
+}
+
+// Minimal Port definition, expand if more fields are selected in the query
+export interface PortDetails extends Database['public']['Tables']['ports']['Row'] {}
+
+
 export type Database = {
   public: {
     Tables: {
@@ -42,25 +55,28 @@ export type Database = {
           }
         ]
       }
-      user_profiles: {
+      profiles: { // Changed from user_profiles to profiles to match dashboard
         Row: {
           id: string; 
           full_name: string | null;
           avatar_url: string | null;
+          tenant_id: string | null; // Added tenant_id
         };
         Insert: {
           id: string;
           full_name?: string | null;
           avatar_url?: string | null;
+          tenant_id?: string | null;
         };
         Update: {
           id?: string;
           full_name?: string | null;
           avatar_url?: string | null;
+          tenant_id?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: "user_profiles_id_fkey";
+            foreignKeyName: "profiles_id_fkey"; // Changed from user_profiles_id_fkey
             columns: ["id"];
             isOneToOne: true;
             referencedRelation: "users";
@@ -98,7 +114,7 @@ export type Database = {
             foreignKeyName: "locations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "users" 
             referencedColumns: ["id"]
           },
           {
@@ -117,7 +133,7 @@ export type Database = {
           description: string | null
           location_id: string | null 
           status: string | null 
-          total_u: number | null 
+          total_u: number // Changed from number | null to number
           tenant_id: string | null 
           created_at: string | null 
         }
@@ -127,7 +143,7 @@ export type Database = {
           description?: string | null
           location_id?: string | null 
           status?: string | null
-          total_u?: number | null
+          total_u: number // Changed from number | null
           tenant_id?: string | null
           created_at?: string | null
         }
@@ -137,7 +153,7 @@ export type Database = {
           description?: string | null
           location_id?: string | null 
           status?: string | null
-          total_u?: number | null
+          total_u?: number // Changed from number | null
           tenant_id?: string | null
           created_at?: string | null
         }
@@ -162,7 +178,11 @@ export type Database = {
         Row: {
           id: string 
           name: string | null
-          size_u: number | null 
+          asset_type: string | null // Added asset_type
+          status: string | null // Added status
+          start_u: number // Added start_u, assumed non-nullable
+          size_u: number // Changed from number | null
+          details: Json | null // Added details (jsonb)
           rack_id: string | null 
           tenant_id: string | null 
           created_at: string | null 
@@ -170,7 +190,11 @@ export type Database = {
         Insert: {
           id?: string
           name?: string | null
-          size_u?: number | null
+          asset_type?: string | null
+          status?: string | null
+          start_u: number
+          size_u: number
+          details?: Json | null
           rack_id?: string | null
           tenant_id?: string | null
           created_at?: string | null
@@ -178,7 +202,11 @@ export type Database = {
         Update: {
           id?: string
           name?: string | null
-          size_u?: number | null
+          asset_type?: string | null
+          status?: string | null
+          start_u?: number
+          size_u?: number
+          details?: Json | null
           rack_id?: string | null
           tenant_id?: string | null
           created_at?: string | null
