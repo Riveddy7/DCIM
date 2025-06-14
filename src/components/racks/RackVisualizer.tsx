@@ -12,7 +12,6 @@ interface RackVisualizerProps {
 }
 
 export function RackVisualizer({ total_u, assets, selectedAssetId, onAssetSelect }: RackVisualizerProps) {
-  // U markers now go from 1 (top) to total_u (bottom)
   const uMarkers = Array.from({ length: total_u }, (_, i) => i + 1);
 
   return (
@@ -32,21 +31,19 @@ export function RackVisualizer({ total_u, assets, selectedAssetId, onAssetSelect
         <div
           className="relative flex-grow grid"
           style={{
-            gridTemplateRows: `repeat(${total_u}, minmax(0, 1fr))`, // Each row is 1U
-            gap: '1px', // Small gap between U slots
+            gridTemplateRows: `repeat(${total_u}, minmax(0, 1fr))`, 
+            gap: '1px', 
           }}
         >
           {/* Render empty U slots first as background guides */}
           {Array.from({ length: total_u }, (_, i) => i + 1).map(uRow => (
              <div
                 key={`empty-u-${uRow}`}
-                className="border-b border-dashed border-gray-700/30" // Style for empty U visual guide
+                className="border-b border-dashed border-gray-700/30" 
                 style={{ gridRowStart: uRow, gridRowEnd: uRow + 1, minHeight: '2rem', zIndex: 0}}
              />
            ))}
           {assets.map(asset => {
-            // Validate start_u and size_u before rendering
-            // Assuming asset.start_u is now 1-indexed from the top
             if (asset.start_u === null || asset.start_u === undefined || asset.start_u <= 0 ||
                 asset.size_u === null || asset.size_u === undefined || asset.size_u <= 0 ||
                 (asset.start_u + asset.size_u - 1) > total_u ) {
@@ -54,7 +51,6 @@ export function RackVisualizer({ total_u, assets, selectedAssetId, onAssetSelect
               return null;
             }
 
-            // gridRowStart is now directly asset.start_u (1-indexed from top)
             const gridRowStart = asset.start_u;
 
             return (
@@ -63,18 +59,21 @@ export function RackVisualizer({ total_u, assets, selectedAssetId, onAssetSelect
                 onClick={() => onAssetSelect(asset.id)}
                 title={`${asset.name || 'Unnamed Asset'} (Size: ${asset.size_u}U, Start U (from top): ${asset.start_u})`}
                 className={cn(
-                  "bg-primary/20 hover:bg-primary/40 border border-purple-500/30 rounded flex items-center justify-center p-1 text-xs text-center cursor-pointer transition-all duration-200 ease-in-out text-gray-50 overflow-hidden",
+                  "w-full bg-primary/20 hover:bg-primary/40 border border-purple-500/30 rounded p-1 text-xs text-center cursor-pointer transition-all duration-200 ease-in-out text-gray-50 overflow-hidden",
                   "focus:outline-none focus:ring-2 focus:ring-purple-400",
                   asset.id === selectedAssetId && "ring-2 ring-offset-2 ring-offset-background ring-purple-400 neon-glow-primary bg-primary/50 shadow-lg"
                 )}
                 style={{
                   gridRowStart: gridRowStart,
                   gridRowEnd: `span ${asset.size_u}`,
-                  // Height of each U slot is implicitly defined by the parent's minHeight and grid-template-rows.
-                  // For an asset spanning N U's, it takes N grid rows.
-                  // minHeight ensures the asset text is visible and clickable.
-                  minHeight: `calc(${asset.size_u * 2}rem - ${(asset.size_u -1) * 1}px)`, // Adjust height based on U size, considering the gap
-                  zIndex: asset.id === selectedAssetId ? 10 : 1, // Selected asset on top
+                  minHeight: `calc(${asset.size_u * 2}rem - ${(asset.size_u -1) * 1}px)`, 
+                  zIndex: asset.id === selectedAssetId ? 10 : 1, 
+                  // Ensure the div itself takes full height of its spanned rows
+                  // display: 'flex' and items-center can be used if more precise vertical centering is needed for multi-line text
+                  // For single line text, padding usually suffices.
+                  display: 'flex', // Re-add flex for vertical centering
+                  alignItems: 'center', // Vertical centering
+                  justifyContent: 'center', // Horizontal centering already handled by text-center, but good for flex context
                 }}
               >
                 <span className="truncate">{asset.name || 'Unnamed Asset'}</span>
