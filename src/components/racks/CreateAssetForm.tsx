@@ -2,12 +2,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label'; // Not directly used, FormLabel is preferred
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -17,13 +16,11 @@ import { Loader2 } from 'lucide-react';
 import type { TablesInsert } from '@/lib/database.types';
 import { assetSchemas, getAssetTypeOptions, type FieldDefinition } from '@/lib/asset-schemas';
 
-// Schema for common fields, asset_type is now required
 const commonAssetFormSchema = z.object({
   name: z.string().min(1, 'El nombre del activo es requerido.'),
   asset_type: z.string().min(1, 'Debe seleccionar un tipo de activo.'),
-  status: z.string().optional(), // Consider making this a select with predefined statuses
+  status: z.string().optional(),
   size_u: z.coerce.number().int().min(1, 'El tamaño debe ser al menos 1U.'),
-  // `details` will be constructed dynamically, so not directly in Zod schema for react-hook-form root
 });
 
 type CommonAssetFormValues = z.infer<typeof commonAssetFormSchema>;
@@ -50,7 +47,7 @@ export function CreateAssetForm({
   const [isLoading, setIsLoading] = useState(false);
   const [currentDynamicSchema, setCurrentDynamicSchema] = useState<FieldDefinition[]>([]);
 
-  const form = useForm<CommonAssetFormValues & Record<string, any>>({ // Allow extra properties for dynamic fields
+  const form = useForm<CommonAssetFormValues & Record<string, any>>({
     resolver: zodResolver(commonAssetFormSchema),
     defaultValues: {
       name: '',
@@ -66,41 +63,52 @@ export function CreateAssetForm({
     if (watchedAssetType && assetSchemas[watchedAssetType]) {
       const newSchema = assetSchemas[watchedAssetType];
       setCurrentDynamicSchema(newSchema);
-      // Set default values for new dynamic fields
-      newSchema.forEach(field => {
-        if (form.getValues(field.name) === undefined && field.defaultValue !== undefined) {
-          form.setValue(field.name, field.defaultValue);
-        } else if (form.getValues(field.name) === undefined) {
-           // Ensure field is registered if no default value
-           form.register(field.name);
-           form.setValue(field.name, field.type === 'number' ? null : '');
+      
+      // Clear previous dynamic field values to avoid persisting them if type changes
+      const oldDynamicFields = currentDynamicSchema.map(f => f.name);
+      oldDynamicFields.forEach(fieldName => {
+        if (!newSchema.find(nf => nf.name === fieldName)) {
+          form.unregister(fieldName); // Unregister fields not in the new schema
         }
       });
+
+      newSchema.forEach(fieldDef => {
+        // Use defaultValue from schema if provided, otherwise set based on type
+        const RHFDefaultValue = fieldDef.defaultValue !== undefined 
+          ? fieldDef.defaultValue 
+          : fieldDef.type === 'number' ? null : '';
+        
+        // Set value ensuring the field is registered with RHF
+        form.setValue(fieldDef.name, form.getValues(fieldDef.name) ?? RHFDefaultValue);
+      });
     } else {
+      // If no asset type or schema, clear out any old dynamic fields
+      currentDynamicSchema.forEach(fieldDef => form.unregister(fieldDef.name));
       setCurrentDynamicSchema([]);
     }
-  }, [watchedAssetType, form]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedAssetType, form.setValue, form.getValues, form.unregister]); // form.unregister was missing from deps
 
   async function onSubmit(values: CommonAssetFormValues & Record<string, any>) {
     setIsLoading(true);
 
     const detailsObject: Record<string, any> = {};
     currentDynamicSchema.forEach(fieldDef => {
-      if (values[fieldDef.name] !== undefined) {
+      if (values[fieldDef.name] !== undefined && values[fieldDef.name] !== null && values[fieldDef.name] !== '') {
         detailsObject[fieldDef.name] = values[fieldDef.name];
       }
     });
-
+    
     const newAssetData: TablesInsert<'assets'> = {
       tenant_id: tenantId,
       rack_id: rackId,
       location_id: rackLocationId,
       name: values.name,
-      asset_type: values.asset_type, // asset_type is now a top-level field
+      asset_type: values.asset_type,
       status: values.status || null,
       start_u: startU,
       size_u: values.size_u,
-      details: detailsObject,
+      details: Object.keys(detailsObject).length > 0 ? detailsObject : null, // Store null if no details
     };
 
     const { error } = await supabase.from('assets').insert([newAssetData]);
@@ -127,7 +135,6 @@ export function CreateAssetForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1">
-        {/* Common Fields */}
         <FormField
           control={form.control}
           name="name"
@@ -148,7 +155,7 @@ export function CreateAssetForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-gray-300">Tipo de Activo</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={(value) => {field.onChange(value);}} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger className="bg-input border-purple-500/30 text-gray-300">
                     <SelectValue placeholder="Selecciona un tipo de activo" />
@@ -213,40 +220,35 @@ export function CreateAssetForm({
           )}
         />
         
-        {/* Dynamic Fields based on selected asset_type */}
         {currentDynamicSchema.map((fieldDef) => (
           <FormField
             key={fieldDef.name}
             control={form.control}
-            name={fieldDef.name} // Dynamic field name
-            defaultValue={fieldDef.defaultValue ?? (fieldDef.type === 'number' ? null : '')}
+            name={fieldDef.name}
+            defaultValue={form.getValues(fieldDef.name) ?? fieldDef.defaultValue ?? (fieldDef.type === 'number' ? null : '')}
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-gray-300">{fieldDef.label} {fieldDef.required && <span className="text-destructive">*</span>}</FormLabel>
                 <FormControl>
-                  <>
-                    {fieldDef.type === 'text' && (
-                      <Input type="text" placeholder={fieldDef.placeholder} {...field} className="bg-input border-purple-500/30 text-gray-50" />
-                    )}
-                    {fieldDef.type === 'number' && (
-                      <Input type="number" placeholder={fieldDef.placeholder} {...field} onChange={e => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))} value={field.value ?? ''} className="bg-input border-purple-500/30 text-gray-50" />
-                    )}
-                    {fieldDef.type === 'select' && fieldDef.options && (
-                      <Select onValueChange={field.onChange} defaultValue={field.value || fieldDef.defaultValue}>
-                        <SelectTrigger className="bg-input border-purple-500/30 text-gray-300">
-                          <SelectValue placeholder={fieldDef.placeholder || 'Selecciona una opción'} />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover border-purple-500/50 text-gray-200">
-                          {fieldDef.options.map(option => (
-                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    {fieldDef.type === 'textarea' && (
-                      <Textarea placeholder={fieldDef.placeholder} {...field} className="bg-input border-purple-500/30 text-gray-50" rows={3}/>
-                    )}
-                  </>
+                  {/* Removed React.Fragment wrapper here */}
+                  {fieldDef.type === 'text' ? (
+                    <Input type="text" placeholder={fieldDef.placeholder} {...field} className="bg-input border-purple-500/30 text-gray-50" />
+                  ) : fieldDef.type === 'number' ? (
+                    <Input type="number" placeholder={fieldDef.placeholder} {...field} onChange={e => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))} value={field.value ?? ''} className="bg-input border-purple-500/30 text-gray-50" />
+                  ) : fieldDef.type === 'select' && fieldDef.options ? (
+                    <Select onValueChange={field.onChange} defaultValue={field.value || fieldDef.defaultValue}>
+                      <SelectTrigger className="bg-input border-purple-500/30 text-gray-300">
+                        <SelectValue placeholder={fieldDef.placeholder || 'Selecciona una opción'} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border-purple-500/50 text-gray-200">
+                        {fieldDef.options.map(option => (
+                          <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : fieldDef.type === 'textarea' ? (
+                    <Textarea placeholder={fieldDef.placeholder} {...field} className="bg-input border-purple-500/30 text-gray-50" rows={3}/>
+                  ) : null}
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -267,3 +269,4 @@ export function CreateAssetForm({
     </Form>
   );
 }
+
