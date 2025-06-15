@@ -19,7 +19,6 @@ export default async function RackDetailPage({ params }: RackDetailPageProps) {
     redirect('/login');
   }
 
-  // Fetch tenant_id from profiles table
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('tenant_id')
@@ -28,8 +27,6 @@ export default async function RackDetailPage({ params }: RackDetailPageProps) {
 
   if (profileError || !profile || !profile.tenant_id) {
     console.error('Error fetching profile or tenant ID:', profileError?.message);
-    // Handle missing profile or tenant_id appropriately
-    // For example, redirect to a setup page or show an error
     return (
       <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center">
         <ServerCrash className="h-24 w-24 text-destructive mb-6" />
@@ -54,15 +51,15 @@ export default async function RackDetailPage({ params }: RackDetailPageProps) {
   const { data: rackData, error: rackError } = await supabase
     .from('racks')
     .select(`
-      id, name, total_u,
+      id, name, total_u, location_id, notes,
       assets (
         id, name, asset_type, status, start_u, size_u, details,
         ports ( id, name, port_type )
       )
     `)
     .eq('id', rackId)
-    .eq('tenant_id', tenantId) // Filter by the fetched tenant_id
-    .single<RackWithAssetsAndPorts>(); // Type assertion might need adjustment based on actual return
+    .eq('tenant_id', tenantId)
+    .single<RackWithAssetsAndPorts>();
 
   if (rackError) {
     console.error('Error fetching rack details:', rackError.message);
@@ -100,7 +97,7 @@ export default async function RackDetailPage({ params }: RackDetailPageProps) {
     );
   }
   
-  // The type assertion for single<RackWithAssetsAndPorts>() assumes the shape matches.
-  // If Supabase client returns a more generic type, you might need to cast or validate.
-  return <RackDetailView rackData={rackData as RackWithAssetsAndPorts} />;
+  return <RackDetailView rackData={rackData} tenantId={tenantId} />;
 }
+
+    

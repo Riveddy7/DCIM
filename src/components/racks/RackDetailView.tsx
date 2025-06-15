@@ -8,29 +8,39 @@ import { AssetDetailPanel } from './AssetDetailPanel';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import type { RackWithAssetsAndPorts, AssetWithPorts } from '@/lib/database.types';
-import { useRouter } from 'next/navigation'; // For router.refresh
+import { useRouter } from 'next/navigation';
 
 interface RackDetailViewProps {
   rackData: RackWithAssetsAndPorts;
-  tenantId: string; // Added tenantId
+  tenantId: string;
 }
 
 export function RackDetailView({ rackData, tenantId }: RackDetailViewProps) {
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [addingAssetSlot, setAddingAssetSlot] = useState<number | null>(null);
   const router = useRouter();
 
   const handleAssetSelect = (assetId: string) => {
     setSelectedAssetId(assetId);
+    setAddingAssetSlot(null);
+  };
+
+  const handleStartAddAsset = (uSlot: number) => {
+    setSelectedAssetId(null);
+    setAddingAssetSlot(uSlot);
+  };
+
+  const handleAssetCreateSuccess = () => {
+    setAddingAssetSlot(null);
+    router.refresh();
+  };
+  
+  const handleCancelAddAsset = () => {
+    setAddingAssetSlot(null);
   };
 
   const assetsArray = Array.isArray(rackData.assets) ? rackData.assets : [];
   const selectedAsset = assetsArray.find(asset => asset.id === selectedAssetId) || null;
-
-  const handleAssetUpdateSuccess = () => {
-    router.refresh(); // Refresh data on the page
-    // Optionally, you might want to re-fetch just the selected asset or clear selection
-    // depending on UX preference, but router.refresh() handles general data update.
-  };
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
@@ -52,19 +62,24 @@ export function RackDetailView({ rackData, tenantId }: RackDetailViewProps) {
       </header>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        <div className="lg:w-1/2"> {/* Adjusted for 50% width */}
+        <div className="lg:w-1/2">
           <RackVisualizer
             total_u={rackData.total_u}
             assets={assetsArray}
             selectedAssetId={selectedAssetId}
             onAssetSelect={handleAssetSelect}
+            onAddAssetClick={handleStartAddAsset}
           />
         </div>
-        <div className="lg:w-1/2"> {/* Adjusted for 50% width */}
+        <div className="lg:w-1/2">
           <AssetDetailPanel
             asset={selectedAsset}
             tenantId={tenantId}
-            onAssetUpdateSuccess={handleAssetUpdateSuccess}
+            rackId={rackData.id}
+            rackLocationId={rackData.location_id}
+            addingAssetSlot={addingAssetSlot}
+            onAssetCreateSuccess={handleAssetCreateSuccess}
+            onCancelAddAsset={handleCancelAddAsset}
           />
         </div>
       </div>
@@ -72,3 +87,4 @@ export function RackDetailView({ rackData, tenantId }: RackDetailViewProps) {
   );
 }
 
+    

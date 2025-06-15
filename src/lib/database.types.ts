@@ -7,12 +7,13 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-// Specific types for the Rack Detail View based on user request
 export interface RackWithAssetsAndPorts {
   id: string;
   name: string | null;
   total_u: number;
+  location_id: string; // Added for creating assets within this rack's location
   assets: AssetWithPorts[];
+  notes?: string | null; // Added from previous context, ensure it's in your select if used
 }
 
 export interface AssetWithPorts {
@@ -27,7 +28,7 @@ export interface AssetWithPorts {
 }
 
 export interface PortDetails {
-  id: string;
+  id:string;
   name: string | null;
   port_type: string | null;
 }
@@ -100,21 +101,18 @@ export type Database = {
           tenant_id: string
           full_name: string | null
           role: string | null
-          avatar_url: string | null // Added from previous schema, assuming it's still desired
         }
         Insert: {
           id: string
           tenant_id: string
           full_name?: string | null
           role?: string | null
-          avatar_url?: string | null
         }
         Update: {
           id?: string
           tenant_id?: string
           full_name?: string | null
           role?: string | null
-          avatar_url?: string | null
         }
         Relationships: [
           {
@@ -140,7 +138,6 @@ export type Database = {
           parent_location_id: string | null
           name: string
           description: string | null
-          created_at: string | null // Assuming created_at is still desired
         }
         Insert: {
           id?: string
@@ -148,7 +145,6 @@ export type Database = {
           parent_location_id?: string | null
           name: string
           description?: string | null
-          created_at?: string | null
         }
         Update: {
           id?: string
@@ -156,7 +152,6 @@ export type Database = {
           parent_location_id?: string | null
           name?: string
           description?: string | null
-          created_at?: string | null
         }
         Relationships: [
           {
@@ -185,8 +180,6 @@ export type Database = {
           pos_x: number | null
           pos_y: number | null
           notes: string | null
-          created_at: string | null // Assuming created_at is still desired
-          status: string | null // From old schema, added for get_racks_overview if needed
         }
         Insert: {
           id?: string
@@ -197,8 +190,6 @@ export type Database = {
           pos_x?: number | null
           pos_y?: number | null
           notes?: string | null
-          created_at?: string | null
-          status?: string | null
         }
         Update: {
           id?: string
@@ -209,8 +200,6 @@ export type Database = {
           pos_x?: number | null
           pos_y?: number | null
           notes?: string | null
-          created_at?: string | null
-          status?: string | null
         }
         Relationships: [
           {
@@ -241,7 +230,6 @@ export type Database = {
           start_u: number | null
           size_u: number | null
           details: Json | null
-          created_at: string | null // Assuming created_at is still desired
         }
         Insert: {
           id?: string
@@ -254,7 +242,6 @@ export type Database = {
           start_u?: number | null
           size_u?: number | null
           details?: Json | null
-          created_at?: string | null
         }
         Update: {
           id?: string
@@ -267,7 +254,6 @@ export type Database = {
           start_u?: number | null
           size_u?: number | null
           details?: Json | null
-          created_at?: string | null
         }
         Relationships: [
           {
@@ -300,7 +286,6 @@ export type Database = {
           asset_id: string
           name: string
           port_type: string | null
-          created_at: string | null // Assuming created_at is still desired
         }
         Insert: {
           id?: string
@@ -308,7 +293,6 @@ export type Database = {
           asset_id: string
           name: string
           port_type?: string | null
-          created_at?: string | null
         }
         Update: {
           id?: string
@@ -316,7 +300,6 @@ export type Database = {
           asset_id?: string
           name?: string
           port_type?: string | null
-          created_at?: string | null
         }
         Relationships: [
           {
@@ -342,7 +325,6 @@ export type Database = {
           port_a_id: string
           port_b_id: string
           details: Json | null
-          created_at: string | null // Assuming created_at is still desired
         }
         Insert: {
           id?: string
@@ -350,7 +332,6 @@ export type Database = {
           port_a_id: string
           port_b_id: string
           details?: Json | null
-          created_at?: string | null
         }
         Update: {
           id?: string
@@ -358,7 +339,6 @@ export type Database = {
           port_a_id?: string
           port_b_id?: string
           details?: Json | null
-          created_at?: string | null
         }
         Relationships: [
           {
@@ -384,7 +364,7 @@ export type Database = {
           }
         ]
       }
-      todos: { // Kept from original schema as it's used elsewhere
+      todos: {
         Row: {
           id: string
           user_id: string | null
@@ -411,7 +391,7 @@ export type Database = {
             foreignKeyName: "todos_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "users" // Supabase auth.users
+            referencedRelation: "users" 
             referencedColumns: ["id"]
           }
         ]
@@ -420,7 +400,7 @@ export type Database = {
     Views: {
       [_ in never]: never
     }
-    Functions: { // Keeping existing functions, ensure their definitions align with new table structures if they use them
+    Functions: { 
       get_network_ports_stats: {
         Args: { tenant_id_param: string } 
         Returns: { total_ports: number; used_ports: number }[] 
@@ -434,12 +414,11 @@ export type Database = {
         Returns: {
           id: string 
           name: string | null
-          // description: string | null -> racks table now has 'notes'
-          notes: string | null // Added based on new racks schema
+          notes: string | null 
           location_id: string | null 
           location_name: string | null 
-          status: string | null
-          total_u: number // racks.total_u is not nullable
+          status: string | null 
+          total_u: number 
           occupied_u: number | null 
           asset_count: number | null 
           total_rack_ports: number | null 
@@ -455,9 +434,6 @@ export type Database = {
     }
   }
 }
-
-// Generic utility types (Tables, TablesInsert, TablesUpdate, Enums) remain the same
-// These are useful for general Supabase interactions but the specific interfaces above are for the rack detail view.
 
 export type Tables<
   PublicTableNameOrOptions extends
@@ -544,3 +520,5 @@ export type Enums<
 VITE_SUPABASE_URL="http://127.0.0.1:54321"
 VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
 
+
+    

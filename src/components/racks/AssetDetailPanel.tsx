@@ -4,14 +4,19 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Server, Power, Info, ListTree } from 'lucide-react';
+import { Server, Power, Info, ListTree, PackagePlus } from 'lucide-react';
 import type { AssetWithPorts, Json, PortDetails } from '@/lib/database.types';
 import { cn } from '@/lib/utils';
+import { CreateAssetForm } from './CreateAssetForm'; // Import the new form
 
 interface AssetDetailPanelProps {
   asset: AssetWithPorts | null;
-  tenantId: string; // Keep for potential future use (e.g., actions)
-  onAssetUpdateSuccess: () => void; // Keep for potential future use
+  tenantId: string;
+  rackId: string;
+  rackLocationId: string;
+  addingAssetSlot: number | null; // U-slot for new asset
+  onAssetCreateSuccess: () => void;
+  onCancelAddAsset: () => void;
 }
 
 const formatKey = (key: string): string => {
@@ -25,12 +30,10 @@ const renderJsonDetails = (details: Json | undefined | null): React.ReactNode =>
   if (!details || typeof details !== 'object' || Array.isArray(details)) {
     return <p className="text-sm text-gray-500">No hay detalles adicionales disponibles.</p>;
   }
-
   const entries = Object.entries(details);
   if (entries.length === 0) {
     return <p className="text-sm text-gray-500">No hay detalles adicionales disponibles.</p>;
   }
-
   return (
     <ul className="space-y-1 text-sm">
       {entries.map(([key, value]) => (
@@ -43,14 +46,51 @@ const renderJsonDetails = (details: Json | undefined | null): React.ReactNode =>
   );
 };
 
-export function AssetDetailPanel({ asset, tenantId, onAssetUpdateSuccess }: AssetDetailPanelProps) {
+export function AssetDetailPanel({ 
+  asset, 
+  tenantId, 
+  rackId, 
+  rackLocationId,
+  addingAssetSlot, 
+  onAssetCreateSuccess, 
+  onCancelAddAsset 
+}: AssetDetailPanelProps) {
+
+  if (addingAssetSlot !== null) {
+    return (
+      <Card className="glassmorphic-card h-full flex flex-col">
+        <CardHeader className="pb-4">
+          <CardTitle className="font-headline text-2xl text-gray-50 flex items-center">
+            <PackagePlus className="mr-3 h-6 w-6 text-primary" />
+            Añadir Nuevo Activo en U: {addingAssetSlot}
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Completa los detalles para el nuevo activo.
+          </CardDescription>
+        </CardHeader>
+        <ScrollArea className="flex-grow">
+          <CardContent className="pt-0">
+            <CreateAssetForm
+              tenantId={tenantId}
+              rackId={rackId}
+              rackLocationId={rackLocationId}
+              startU={addingAssetSlot}
+              onAssetCreateSuccess={onAssetCreateSuccess}
+              onCancel={onCancelAddAsset}
+            />
+          </CardContent>
+        </ScrollArea>
+      </Card>
+    );
+  }
+
   if (!asset) {
     return (
       <Card className="glassmorphic-card h-full flex flex-col items-center justify-center">
         <CardContent className="text-center">
           <Server className="mx-auto h-16 w-16 text-gray-600 mb-4" />
           <p className="text-gray-400">Selecciona un activo del rack</p>
-          <p className="text-sm text-gray-500">para ver sus detalles aquí.</p>
+          <p className="text-sm text-gray-500">o un espacio vacío para añadir uno nuevo.</p>
         </CardContent>
       </Card>
     );
@@ -127,3 +167,5 @@ export function AssetDetailPanel({ asset, tenantId, onAssetUpdateSuccess }: Asse
     </Card>
   );
 }
+
+    
