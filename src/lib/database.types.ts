@@ -443,6 +443,30 @@ export type Database = {
           used_rack_ports: number | null 
         }[]
       }
+      get_paginated_assets: {
+        Args: {
+            tenant_id_param: string;
+            search_query: string;
+            filter_type: string;
+            filter_status: string;
+            sort_by: string;
+            sort_order_asc: boolean;
+            page_number: number;
+            page_size: number;
+        };
+        Returns: {
+            id: string;
+            name: string;
+            asset_type: string;
+            status: string;
+            vendor: string;
+            model: string;
+            location_name: string;
+            rack_name: string;
+            rack_id: string;
+            total_count: number;
+        }[];
+      }
     }
     Enums: {
       [_ in never]: never
@@ -532,5 +556,6 @@ export type Enums<
   : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
   ? Database["public"]["Enums"][PublicEnumNameOrOptions]
   : never
+    
 
     
