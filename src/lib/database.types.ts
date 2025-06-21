@@ -27,10 +27,19 @@ export interface AssetWithPorts {
   ports: PortDetails[];
 }
 
+export interface PortConnectionInfo {
+  id: string;
+  port_b_id?: string;
+  port_a_id?: string;
+}
+
 export interface PortDetails {
-  id:string;
+  id: string;
   name: string | null;
   port_type: string | null;
+  asset_id: string;
+  connections_port_a: PortConnectionInfo[];
+  connections_port_b: PortConnectionInfo[];
 }
 
 export type Database = {
