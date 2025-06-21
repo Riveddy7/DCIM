@@ -415,6 +415,10 @@ export type Database = {
         Args: { asset_id_param: string }
         Returns: { id: string; name: string | null; port_type: string | null }[]
       }
+      get_unconnected_endpoints: {
+        Args: { tenant_id_param: string }
+        Returns: Tables<'assets'>[]
+      }
       get_network_ports_stats: {
         Args: { tenant_id_param: string } 
         Returns: { total_ports: number; used_ports: number }[] 
