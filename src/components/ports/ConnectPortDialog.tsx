@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Loader2, X, Server, List, Network, PlusCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -12,7 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { CableDetailsForm } from './CableDetailsForm';
-import { CreateEndpointForm } from '../endpoints/CreateEndpointForm';
+import { CreateEndpointWizard } from '../endpoints/CreateEndpointWizard';
 
 interface ConnectPortDialogProps {
   portA: PortDetails;
@@ -47,7 +47,7 @@ export function ConnectPortDialog({ portA, portA_assetType, tenantId, assetsInSa
   const [cableDetails, setCableDetails] = useState<Record<string, any> | null>(null);
 
   // New state for endpoint connection mode
-  const [isCreateEndpointDialogOpen, setIsCreateEndpointDialogOpen] = useState(false);
+  const [isCreateEndpointWizardOpen, setIsCreateEndpointWizardOpen] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
   const [freeEndpoints, setFreeEndpoints] = useState<FreeEndpoint[]>([]);
   
@@ -190,26 +190,26 @@ export function ConnectPortDialog({ portA, portA_assetType, tenantId, assetsInSa
     <>
       <div className="flex flex-col gap-4 mt-4 h-96">
         <div className="flex justify-between items-center">
-            <h3 className="font-semibold flex items-center"><Network className="mr-2 h-4 w-4 text-cyan-400"/>1. Seleccionar Punto de Red de Usuario</h3>
-            <Dialog open={isCreateEndpointDialogOpen} onOpenChange={setIsCreateEndpointDialogOpen}>
+            <h3 className="font-semibold flex items-center"><Network className="mr-2 h-4 w-4 text-cyan-400"/>1. Conectar a un Punto de Red de Usuario</h3>
+            <Dialog open={isCreateEndpointWizardOpen} onOpenChange={setIsCreateEndpointWizardOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <PlusCircle className="mr-2 h-4 w-4"/> Crear Nuevo Punto de Red
                 </Button>
               </DialogTrigger>
-              <DialogContent className="glassmorphic-card border-purple-500/40 text-gray-50 sm:max-w-lg">
+              <DialogContent className="glassmorphic-card border-purple-500/40 text-gray-50 sm:max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle className="font-headline text-2xl">Crear Nuevo Punto de Red de Usuario</DialogTitle>
+                  <DialogTitle className="font-headline text-2xl">Asistente de Creación de Puntos de Red</DialogTitle>
                   <DialogDescription>
-                    Define un nuevo punto final de usuario (nodo) y conéctalo al puerto trasero del patch panel.
+                    Sigue los pasos para definir un nuevo punto de red, su cableado y el dispositivo final.
                   </DialogDescription>
                 </DialogHeader>
-                <CreateEndpointForm 
+                <CreateEndpointWizard 
                    tenantId={tenantId}
                    rearPortToConnect={portA}
                    locations={locations}
-                   onSuccess={() => { setIsCreateEndpointDialogOpen(false); onSuccess(); }}
-                   onCancel={() => setIsCreateEndpointDialogOpen(false)}
+                   onSuccess={() => { setIsCreateEndpointWizardOpen(false); onSuccess(); }}
+                   onCancel={() => setIsCreateEndpointWizardOpen(false)}
                 />
               </DialogContent>
             </Dialog>
