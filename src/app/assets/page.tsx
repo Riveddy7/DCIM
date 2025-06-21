@@ -47,8 +47,8 @@ export default function AssetsPage() {
   // Read search params
   const page = parseInt(searchParams.get('page') || '1', 10);
   const searchQuery = searchParams.get('q') || '';
-  const filterType = searchParams.get('type') || '';
-  const filterStatus = searchParams.get('status') || '';
+  const filterType = searchParams.get('type') || 'all';
+  const filterStatus = searchParams.get('status') || 'all';
   const sortBy = searchParams.get('sortBy') || 'name';
   const sortOrder = searchParams.get('sortOrder') || 'asc';
 
@@ -56,7 +56,7 @@ export default function AssetsPage() {
     (paramsToUpdate: Record<string, string | number | null>) => {
       const params = new URLSearchParams(searchParams.toString());
       for (const [name, value] of Object.entries(paramsToUpdate)) {
-        if (value === null || value === '') {
+        if (value === null || value === '' || value === 'all') {
           params.delete(name);
         } else {
           params.set(name, String(value));
@@ -96,8 +96,8 @@ export default function AssetsPage() {
       const { data, error } = await supabase.rpc('get_paginated_assets', {
         tenant_id_param: tenantId,
         search_query: searchQuery || null,
-        filter_type: filterType || null,
-        filter_status: filterStatus || null,
+        filter_type: filterType === 'all' ? null : filterType,
+        filter_status: filterStatus === 'all' ? null : filterStatus,
         sort_by: sortBy,
         sort_order_asc: sortOrder === 'asc',
         page_number: page,
@@ -115,8 +115,13 @@ export default function AssetsPage() {
       }
       setIsLoading(false);
     }
+    
+    // Read params from URL inside useEffect to ensure they are up-to-date
+    const currentFilterType = searchParams.get('type') || 'all';
+    const currentFilterStatus = searchParams.get('status') || 'all';
+    
     fetchAssets();
-  }, [tenantId, page, searchQuery, filterType, filterStatus, sortBy, sortOrder, supabase, toast]);
+  }, [tenantId, page, searchQuery, filterType, filterStatus, sortBy, sortOrder, supabase, toast, searchParams]);
   
   const debouncedSearch = useDebouncedCallback((value: string) => {
     router.push(`/assets?${createQueryString({ q: value })}`);
@@ -175,7 +180,7 @@ export default function AssetsPage() {
                         <SelectValue placeholder="Todos los Tipos" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-purple-500/50 text-gray-200">
-                        <SelectItem value="">Todos los Tipos</SelectItem>
+                        <SelectItem value="all">Todos los Tipos</SelectItem>
                         {assetTypeOptions.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
@@ -188,7 +193,7 @@ export default function AssetsPage() {
                         <SelectValue placeholder="Todos los Estados" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-purple-500/50 text-gray-200">
-                        <SelectItem value="">Todos los Estados</SelectItem>
+                        <SelectItem value="all">Todos los Estados</SelectItem>
                         {assetStatusOptions.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
@@ -288,5 +293,3 @@ export default function AssetsPage() {
     </div>
   );
 }
-
-    
