@@ -1,4 +1,3 @@
-'use server';
 
 import type { FieldDefinition, FieldOption } from './asset-schemas';
 
