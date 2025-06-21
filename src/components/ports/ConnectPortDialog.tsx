@@ -2,18 +2,16 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useDebounce } from 'use-debounce';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, Search, X, ChevronRight, Server, List } from 'lucide-react';
+import { Loader2, X, ChevronRight, Server, List } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { PortDetails, AssetWithPorts } from '@/lib/database.types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '../ui/separator';
+import { CableDetailsForm } from './CableDetailsForm';
 
 interface ConnectPortDialogProps {
   portA: PortDetails;
@@ -39,46 +37,11 @@ export function ConnectPortDialog({ portA, tenantId, assetsInSameRack, onSuccess
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
-  const [searchResults, setSearchResults] = useState<AssetSearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-
   const [selectedAsset, setSelectedAsset] = useState<AssetSearchResult | null>(null);
   const [targetPorts, setTargetPorts] = useState<FreePort[]>([]);
   const [isLoadingPorts, setIsLoadingPorts] = useState(false);
   const [selectedPortB, setSelectedPortB] = useState<FreePort | null>(null);
-
-  const assetIdsInRack = useMemo(() => assetsInSameRack.map(a => a.id), [assetsInSameRack]);
-
-  useEffect(() => {
-    const searchAssets = async () => {
-      if (debouncedSearchTerm.length < 2) {
-        setSearchResults([]);
-        return;
-      }
-      setIsSearching(true);
-      const { data, error } = await supabase
-        .from('assets')
-        .select('id, name')
-        .eq('tenant_id', tenantId)
-        .ilike('name', `%${debouncedSearchTerm}%`)
-        .not('id', 'in', `(${[portA.asset_id, ...assetIdsInRack].map(id => `'${id}'`).join(',')})`)
-        .limit(10);
-
-      if (error) {
-        console.error("Error searching assets:", error);
-      } else {
-        setSearchResults(data);
-      }
-      setIsSearching(false);
-    };
-    if (debouncedSearchTerm) {
-      searchAssets();
-    } else {
-      setSearchResults([]);
-    }
-  }, [debouncedSearchTerm, supabase, tenantId, portA.asset_id, assetIdsInRack]);
+  const [cableDetails, setCableDetails] = useState<Record<string, any> | null>(null);
 
   const handleSelectAsset = async (asset: AssetSearchResult) => {
     setSelectedAsset(asset);
@@ -106,6 +69,7 @@ export function ConnectPortDialog({ portA, tenantId, assetsInSameRack, onSuccess
         port_a_id: portA.id,
         port_b_id: selectedPortB.id,
         tenant_id: tenantId,
+        details: cableDetails,
       });
 
     setIsLoading(false);
@@ -148,13 +112,13 @@ export function ConnectPortDialog({ portA, tenantId, assetsInSameRack, onSuccess
       </DialogHeader>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 h-96">
-        {/* Columna 1: Búsqueda y selección de activo */}
+        {/* Columna 1: Selección de activo */}
         <div className="flex flex-col gap-4">
-          <h3 className="font-semibold flex items-center"><Server className="mr-2 h-4 w-4 text-sky-400"/>1. Buscar Activo de Destino</h3>
+          <h3 className="font-semibold flex items-center"><Server className="mr-2 h-4 w-4 text-sky-400"/>1. Seleccionar Activo de Destino</h3>
           
-          <div>
+          <div className="flex-grow flex flex-col">
             <h4 className="text-sm font-medium text-gray-300 mb-2">En este Rack</h4>
-            <ScrollArea className="h-32 border rounded-md p-2 bg-input/50">
+            <ScrollArea className="h-full border rounded-md p-2 bg-input/50 flex-grow">
               {assetsInSameRack.length > 0 ? (
                 <ul className="space-y-1">
                   {assetsInSameRack.map(asset => (
@@ -167,37 +131,6 @@ export function ConnectPortDialog({ portA, tenantId, assetsInSameRack, onSuccess
                 </ul>
               ) : <p className="text-center text-sm text-gray-400 pt-4">No hay otros activos en este rack.</p>
               }
-            </ScrollArea>
-          </div>
-          
-          <Separator />
-
-          <div>
-            <h4 className="text-sm font-medium text-gray-300 mb-2">Buscar en otra ubicación</h4>
-            <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                <Input
-                type="text"
-                placeholder="Escribe el nombre del activo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-input border-purple-500/30 text-gray-50"
-                />
-            </div>
-            <ScrollArea className="h-32 border rounded-md p-2 bg-input/50">
-                {isSearching ? <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>
-                : searchResults.length > 0 ? (
-                    <ul className="space-y-1">
-                        {searchResults.map(asset => (
-                        <li key={asset.id}>
-                            <Button variant="ghost" className="w-full justify-between" onClick={() => handleSelectAsset(asset)}>
-                            {asset.name} <ChevronRight className="h-4 w-4"/>
-                            </Button>
-                        </li>
-                        ))}
-                    </ul>
-                ) : <p className="text-center text-sm text-gray-400 pt-4">No se encontraron activos.</p>
-                }
             </ScrollArea>
           </div>
         </div>
@@ -222,6 +155,10 @@ export function ConnectPortDialog({ portA, tenantId, assetsInSameRack, onSuccess
           )}
         </div>
       </div>
+
+      {selectedPortB && (
+        <CableDetailsForm onDetailsChange={setCableDetails} />
+      )}
 
       <div className="flex justify-end gap-4 pt-6">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading} className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300">
