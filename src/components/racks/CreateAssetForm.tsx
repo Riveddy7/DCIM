@@ -23,7 +23,10 @@ const commonAssetFormSchema = z.object({
   size_u: z.coerce.number().int().min(1, 'El tamaño debe ser al menos 1U.'),
 });
 
-type CommonAssetFormValues = z.infer<typeof commonAssetFormSchema>;
+// This type allows react-hook-form to manage fields not in the Zod schema.
+type CommonAssetFormValues = z.infer<typeof commonAssetFormSchema> & {
+  [key: string]: any;
+};
 
 interface CreateAssetFormProps {
   tenantId: string;
@@ -47,7 +50,7 @@ export function CreateAssetForm({
   const [isLoading, setIsLoading] = useState(false);
   const [currentDynamicSchema, setCurrentDynamicSchema] = useState<FieldDefinition[]>([]);
 
-  const form = useForm<CommonAssetFormValues & Record<string, any>>({
+  const form = useForm<CommonAssetFormValues>({
     resolver: zodResolver(commonAssetFormSchema),
     defaultValues: {
       name: '',
@@ -60,42 +63,41 @@ export function CreateAssetForm({
   const watchedAssetType = form.watch('asset_type');
 
   useEffect(() => {
+    const oldSchemaFields = currentDynamicSchema.map(f => f.name);
+    
     if (watchedAssetType && assetSchemas[watchedAssetType]) {
       const newSchema = assetSchemas[watchedAssetType];
       setCurrentDynamicSchema(newSchema);
       
-      // Clear previous dynamic field values to avoid persisting them if type changes
-      const oldDynamicFields = currentDynamicSchema.map(f => f.name);
-      oldDynamicFields.forEach(fieldName => {
+      oldSchemaFields.forEach(fieldName => {
         if (!newSchema.find(nf => nf.name === fieldName)) {
-          form.unregister(fieldName); // Unregister fields not in the new schema
+          form.unregister(fieldName as keyof CommonAssetFormValues);
         }
       });
-
+      
       newSchema.forEach(fieldDef => {
-        // Use defaultValue from schema if provided, otherwise set based on type
-        const RHFDefaultValue = fieldDef.defaultValue !== undefined 
-          ? fieldDef.defaultValue 
-          : fieldDef.type === 'number' ? null : '';
-        
-        // Set value ensuring the field is registered with RHF
-        form.setValue(fieldDef.name, form.getValues(fieldDef.name) ?? RHFDefaultValue);
+        form.setValue(fieldDef.name, fieldDef.defaultValue ?? (fieldDef.type === 'number' ? null : ''));
       });
+      
     } else {
-      // If no asset type or schema, clear out any old dynamic fields
-      currentDynamicSchema.forEach(fieldDef => form.unregister(fieldDef.name));
+      oldSchemaFields.forEach(fieldName => form.unregister(fieldName as keyof CommonAssetFormValues));
       setCurrentDynamicSchema([]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedAssetType, form.setValue, form.getValues, form.unregister]); // form.unregister was missing from deps
+  }, [watchedAssetType]);
 
-  async function onSubmit(values: CommonAssetFormValues & Record<string, any>) {
+  async function onSubmit(values: CommonAssetFormValues) {
     setIsLoading(true);
 
+    // KEY FIX: Use form.getValues() to retrieve ALL form data, because
+    // the `values` object from the callback is stripped by the Zod resolver.
+    const allFormValues = form.getValues();
+    
     const detailsObject: Record<string, any> = {};
     currentDynamicSchema.forEach(fieldDef => {
-      if (values[fieldDef.name] !== undefined && values[fieldDef.name] !== null && values[fieldDef.name] !== '') {
-        detailsObject[fieldDef.name] = values[fieldDef.name];
+      const value = allFormValues[fieldDef.name];
+      if (value !== undefined && value !== null && value !== '') {
+        detailsObject[fieldDef.name] = value;
       }
     });
     
@@ -103,12 +105,12 @@ export function CreateAssetForm({
       tenant_id: tenantId,
       rack_id: rackId,
       location_id: rackLocationId,
-      name: values.name,
+      name: values.name, // Use the validated `values` for common fields
       asset_type: values.asset_type,
-      status: values.status || null,
+      status: values.status || 'IN_PRODUCTION',
       start_u: startU,
       size_u: values.size_u,
-      details: Object.keys(detailsObject).length > 0 ? detailsObject : null, // Store null if no details
+      details: Object.keys(detailsObject).length > 0 ? detailsObject : null,
     };
 
     const { error } = await supabase.from('assets').insert([newAssetData]);
@@ -155,7 +157,7 @@ export function CreateAssetForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-gray-300">Tipo de Activo</FormLabel>
-              <Select onValueChange={(value) => {field.onChange(value);}} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger className="bg-input border-purple-500/30 text-gray-300">
                     <SelectValue placeholder="Selecciona un tipo de activo" />
@@ -224,19 +226,17 @@ export function CreateAssetForm({
           <FormField
             key={fieldDef.name}
             control={form.control}
-            name={fieldDef.name}
-            defaultValue={form.getValues(fieldDef.name) ?? fieldDef.defaultValue ?? (fieldDef.type === 'number' ? null : '')}
+            name={fieldDef.name as keyof CommonAssetFormValues}
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-gray-300">{fieldDef.label} {fieldDef.required && <span className="text-destructive">*</span>}</FormLabel>
                 <FormControl>
-                  {/* Removed React.Fragment wrapper here */}
                   {fieldDef.type === 'text' ? (
-                    <Input type="text" placeholder={fieldDef.placeholder} {...field} className="bg-input border-purple-500/30 text-gray-50" />
+                    <Input type="text" placeholder={fieldDef.placeholder} {...field} value={field.value ?? ''} className="bg-input border-purple-500/30 text-gray-50" />
                   ) : fieldDef.type === 'number' ? (
                     <Input type="number" placeholder={fieldDef.placeholder} {...field} onChange={e => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))} value={field.value ?? ''} className="bg-input border-purple-500/30 text-gray-50" />
                   ) : fieldDef.type === 'select' && fieldDef.options ? (
-                    <Select onValueChange={field.onChange} defaultValue={field.value || fieldDef.defaultValue}>
+                    <Select onValueChange={field.onChange} value={field.value || undefined} defaultValue={field.value || undefined}>
                       <SelectTrigger className="bg-input border-purple-500/30 text-gray-300">
                         <SelectValue placeholder={fieldDef.placeholder || 'Selecciona una opción'} />
                       </SelectTrigger>
@@ -247,7 +247,7 @@ export function CreateAssetForm({
                       </SelectContent>
                     </Select>
                   ) : fieldDef.type === 'textarea' ? (
-                    <Textarea placeholder={fieldDef.placeholder} {...field} className="bg-input border-purple-500/30 text-gray-50" rows={3}/>
+                    <Textarea placeholder={fieldDef.placeholder} {...field} value={field.value ?? ''} className="bg-input border-purple-500/30 text-gray-50" rows={3}/>
                   ) : null}
                 </FormControl>
                 <FormMessage />
@@ -269,4 +269,3 @@ export function CreateAssetForm({
     </Form>
   );
 }
-

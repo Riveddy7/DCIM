@@ -11,9 +11,9 @@ export interface RackWithAssetsAndPorts {
   id: string;
   name: string | null;
   total_u: number;
-  location_id: string; // Added for creating assets within this rack's location
+  location_id: string; 
   assets: AssetWithPorts[];
-  notes?: string | null; // Added from previous context, ensure it's in your select if used
+  notes?: string | null;
 }
 
 export interface AssetWithPorts {
@@ -514,11 +514,3 @@ export type Enums<
   : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
   ? Database["public"]["Enums"][PublicEnumNameOrOptions]
   : never
- VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
- VITE_SUPABASE_URL="http://localhost:54321"
-    
-VITE_SUPABASE_URL="http://127.0.0.1:54321"
-VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
-
-
-    
