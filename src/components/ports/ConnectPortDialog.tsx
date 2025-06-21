@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, X, ChevronRight, Server, List, Network, PlusCircle } from 'lucide-react';
+import { Loader2, X, Server, List, Network, PlusCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { PortDetails, AssetWithPorts, Tables } from '@/lib/database.types';
@@ -32,13 +32,15 @@ type FreePort = {
 
 type Location = Pick<Tables<'locations'>, 'id' | 'name'>;
 
+type FreeEndpoint = (Tables<'assets'> & { location_name: string | null });
+
 
 export function ConnectPortDialog({ portA, portA_assetType, tenantId, assetsInSameRack, connectionMode, onSuccess, onCancel }: ConnectPortDialogProps) {
   const supabase = createClient();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<AssetWithPorts | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<AssetWithPorts | Tables<'assets'> | FreeEndpoint | null>(null);
   const [targetPorts, setTargetPorts] = useState<FreePort[]>([]);
   const [isLoadingPorts, setIsLoadingPorts] = useState(false);
   const [selectedPortB, setSelectedPortB] = useState<FreePort | null>(null);
@@ -47,7 +49,7 @@ export function ConnectPortDialog({ portA, portA_assetType, tenantId, assetsInSa
   // New state for endpoint connection mode
   const [isCreateEndpointDialogOpen, setIsCreateEndpointDialogOpen] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [unconnectedEndpoints, setUnconnectedEndpoints] = useState<Tables<'assets'>[]>([]);
+  const [freeEndpoints, setFreeEndpoints] = useState<FreeEndpoint[]>([]);
   
   useEffect(() => {
     if (connectionMode === 'endpoint') {
@@ -55,7 +57,7 @@ export function ConnectPortDialog({ portA, portA_assetType, tenantId, assetsInSa
         setIsLoading(true);
         const [locationsRes, endpointsRes] = await Promise.all([
           supabase.from('locations').select('id, name').eq('tenant_id', tenantId),
-          supabase.rpc('get_unconnected_endpoints', { tenant_id_param: tenantId })
+          supabase.rpc('get_free_endpoints', { tenant_id_param: tenantId })
         ]);
         
         if (locationsRes.error) {
@@ -66,8 +68,9 @@ export function ConnectPortDialog({ portA, portA_assetType, tenantId, assetsInSa
 
         if (endpointsRes.error) {
           toast({ title: 'Error', description: 'No se pudieron cargar los puntos de red de usuario.', variant: 'destructive'});
+          console.error("Error fetching free endpoints:", endpointsRes.error);
         } else {
-          setUnconnectedEndpoints(endpointsRes.data || []);
+          setFreeEndpoints(endpointsRes.data || []);
         }
         setIsLoading(false);
       };
@@ -77,18 +80,19 @@ export function ConnectPortDialog({ portA, portA_assetType, tenantId, assetsInSa
 
 
   const handleSelectAsset = async (asset: AssetWithPorts | Tables<'assets'>) => {
-    setSelectedAsset(asset as AssetWithPorts); // Cast for now, may need adjustment
+    setSelectedAsset(asset);
     setSelectedPortB(null);
     setIsLoadingPorts(true);
     
-    const rpcToCall = asset.asset_type === 'ENDPOINT_USER' ? 'get_free_ports_for_asset' : 'get_free_ports_for_asset';
-    const { data, error } = await supabase.rpc(rpcToCall, { asset_id_param: asset.id });
+    // We always use the same RPC call to get free ports for any given asset ID.
+    const { data, error } = await supabase.rpc('get_free_ports_for_asset', { asset_id_param: asset.id });
 
     if (error) {
       toast({ title: 'Error', description: 'No se pudieron cargar los puertos del activo de destino.', variant: 'destructive'});
       setTargetPorts([]);
     } else {
       let filteredPorts = data || [];
+      // This logic remains useful for standard connections (switch -> patch panel)
       if (portA_assetType === 'SWITCH' && asset.asset_type === 'PATCH_PANEL') {
         filteredPorts = filteredPorts.filter(p => p.name && p.name.endsWith('-F'));
       }
@@ -212,16 +216,16 @@ export function ConnectPortDialog({ portA, portA_assetType, tenantId, assetsInSa
         </div>
         <ScrollArea className="h-full border rounded-md p-2 bg-input/50 flex-grow">
           {isLoading && <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}
-          {!isLoading && unconnectedEndpoints.length === 0 && (
+          {!isLoading && freeEndpoints.length === 0 && (
              <p className="text-center text-sm text-gray-400 pt-4">No hay puntos de red de usuario sin conectar.</p>
           )}
-          {!isLoading && unconnectedEndpoints.length > 0 && (
+          {!isLoading && freeEndpoints.length > 0 && (
               <ul className="space-y-1">
-                {unconnectedEndpoints.map(endpoint => (
+                {freeEndpoints.map(endpoint => (
                   <li key={endpoint.id}>
                     <Button variant={selectedAsset?.id === endpoint.id ? "secondary" : "ghost"} className="w-full justify-between" onClick={() => handleSelectAsset(endpoint)}>
                       {endpoint.name}
-                      <Badge variant="outline" className="text-xs">{locations.find(l => l.id === endpoint.location_id)?.name || 'N/A'}</Badge>
+                      <Badge variant="outline" className="text-xs">{endpoint.location_name || 'N/A'}</Badge>
                     </Button>
                   </li>
                 ))}
@@ -285,3 +289,4 @@ export function ConnectPortDialog({ portA, portA_assetType, tenantId, assetsInSa
   );
 }
 
+    

@@ -415,9 +415,9 @@ export type Database = {
         Args: { asset_id_param: string }
         Returns: { id: string; name: string | null; port_type: string | null }[]
       }
-      get_unconnected_endpoints: {
+      get_free_endpoints: {
         Args: { tenant_id_param: string }
-        Returns: Tables<'assets'>[]
+        Returns: (Tables<'assets'> & { location_name: string | null })[]
       }
       get_network_ports_stats: {
         Args: { tenant_id_param: string } 
@@ -532,3 +532,5 @@ export type Enums<
   : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
   ? Database["public"]["Enums"][PublicEnumNameOrOptions]
   : never
+
+    
