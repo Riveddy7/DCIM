@@ -56,8 +56,8 @@ export default async function RackDetailPage({ params }: RackDetailPageProps) {
         id, name, asset_type, status, start_u, size_u, details,
         ports (
           id, name, port_type, asset_id,
-          connections_port_a:connections!port_a_id(id, port_b_id),
-          connections_port_b:connections!port_b_id(id, port_a_id)
+          connections_port_a:connections!port_a_id(id, port_b_id, details),
+          connections_port_b:connections!port_b_id(id, port_a_id, details)
         )
       )
     `)

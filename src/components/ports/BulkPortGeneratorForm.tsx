@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
@@ -16,6 +17,7 @@ import type { TablesInsert } from '@/lib/database.types';
 
 interface BulkPortGeneratorFormProps {
   assetId: string;
+  assetType: string | null;
   tenantId: string;
   onSuccess: () => void;
 }
@@ -25,11 +27,12 @@ const formSchema = z.object({
   name_prefix: z.string().min(1, 'El prefijo es requerido.'),
   start_number: z.coerce.number().int().min(0, 'El número inicial debe ser 0 o mayor.'),
   port_type: z.string().min(1, 'Debe seleccionar un tipo de puerto.'),
+  create_rear_ports: z.boolean().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function BulkPortGeneratorForm({ assetId, tenantId, onSuccess }: BulkPortGeneratorFormProps) {
+export function BulkPortGeneratorForm({ assetId, assetType, tenantId, onSuccess }: BulkPortGeneratorFormProps) {
   const supabase = createClient();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -38,9 +41,10 @@ export function BulkPortGeneratorForm({ assetId, tenantId, onSuccess }: BulkPort
     resolver: zodResolver(formSchema),
     defaultValues: {
       count: 24,
-      name_prefix: 'GE1/0/',
+      name_prefix: 'P',
       start_number: 1,
-      port_type: 'RJ45',
+      port_type: assetType === 'PATCH_PANEL' ? 'RJ45' : 'RJ45',
+      create_rear_ports: assetType === 'PATCH_PANEL' ? true : false,
     },
   });
 
@@ -49,12 +53,31 @@ export function BulkPortGeneratorForm({ assetId, tenantId, onSuccess }: BulkPort
 
     const portsToCreate: TablesInsert<'ports'>[] = [];
     for (let i = 0; i < values.count; i++) {
-      portsToCreate.push({
-        asset_id: assetId,
-        tenant_id: tenantId,
-        name: `${values.name_prefix}${values.start_number + i}`,
-        port_type: values.port_type,
-      });
+      const portNumber = values.start_number + i;
+      
+      if (assetType === 'PATCH_PANEL' && values.create_rear_ports) {
+        // Create Front Port
+        portsToCreate.push({
+          asset_id: assetId,
+          tenant_id: tenantId,
+          name: `${values.name_prefix}${portNumber}-F`,
+          port_type: values.port_type,
+        });
+        // Create Rear Port
+        portsToCreate.push({
+          asset_id: assetId,
+          tenant_id: tenantId,
+          name: `${values.name_prefix}${portNumber}-R`,
+          port_type: values.port_type,
+        });
+      } else {
+        portsToCreate.push({
+          asset_id: assetId,
+          tenant_id: tenantId,
+          name: `${values.name_prefix}${portNumber}`,
+          port_type: values.port_type,
+        });
+      }
     }
 
     const { error } = await supabase.from('ports').insert(portsToCreate);
@@ -69,7 +92,7 @@ export function BulkPortGeneratorForm({ assetId, tenantId, onSuccess }: BulkPort
     } else {
       toast({
         title: 'Puertos Creados',
-        description: `${values.count} puertos han sido creados exitosamente.`,
+        description: `${portsToCreate.length} puertos han sido creados exitosamente.`,
       });
       onSuccess();
     }
@@ -145,6 +168,30 @@ export function BulkPortGeneratorForm({ assetId, tenantId, onSuccess }: BulkPort
             </FormItem>
           )}
         />
+
+        {assetType === 'PATCH_PANEL' && (
+          <FormField
+            control={form.control}
+            name="create_rear_ports"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm bg-input/30">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>
+                    Crear puertos traseros para cableado estructurado
+                  </FormLabel>
+                  <FormMessage />
+                </div>
+              </FormItem>
+            )}
+          />
+        )}
+
         <div className="flex justify-end gap-4 pt-4">
           <Button type="submit" disabled={isLoading} className="bg-primary text-primary-foreground hover:bg-primary/90 neon-glow-primary">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

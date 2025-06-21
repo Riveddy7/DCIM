@@ -6,12 +6,13 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Server, Power, Info, ListTree, PackagePlus, Cable, CirclePlus, GitCommitHorizontal, Trash2 } from 'lucide-react';
-import type { AssetWithPorts, Json, PortDetails } from '@/lib/database.types';
+import { Server, Power, Info, ListTree, PackagePlus, Cable, CirclePlus, GitCommitHorizontal, Trash2, ArrowRight } from 'lucide-react';
+import type { AssetWithPorts, Json, PortDetails, PortConnectionInfo } from '@/lib/database.types';
 import { cn } from '@/lib/utils';
 import { CreateAssetForm } from './CreateAssetForm';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { BulkPortGeneratorForm } from '../ports/BulkPortGeneratorForm';
 import { ConnectPortDialog } from '../ports/ConnectPortDialog';
 import { useToast } from '@/hooks/use-toast';
@@ -52,6 +53,41 @@ const renderJsonDetails = (details: Json | undefined | null): React.ReactNode =>
   );
 };
 
+const CableDetailsTooltip = ({ connection }: { connection: PortConnectionInfo }) => {
+  if (!connection.details || typeof connection.details !== 'object' || Array.isArray(connection.details)) {
+    return null;
+  }
+  const details = connection.details as Record<string, any>;
+  const entries = Object.entries(details).filter(([, value]) => value !== null && value !== undefined && value !== '');
+
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-amber-400 hover:bg-amber-400/10">
+            <Cable className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent className="bg-popover text-popover-foreground">
+          <p className="font-bold mb-2">Detalles del Cable</p>
+          <ul className="space-y-1">
+            {entries.map(([key, value]) => (
+              <li key={key} className="flex justify-between text-xs gap-4">
+                <span className="text-gray-400">{formatKey(key)}:</span>
+                <span className="text-gray-200">{String(value)}</span>
+              </li>
+            ))}
+          </ul>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
 export function AssetDetailPanel({ asset, rackAssets, tenantId, rackId, rackLocationId, addingAssetSlot, onAssetCreateSuccess, onCancelAddAsset }: AssetDetailPanelProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -75,6 +111,18 @@ export function AssetDetailPanel({ asset, rackAssets, tenantId, rackId, rackLoca
       toast({ title: 'Éxito', description: 'Puerto desconectado correctamente.' });
       router.refresh();
     }
+  };
+
+  const findRemoteConnectionInfo = (connection: PortConnectionInfo) => {
+    const remotePortId = connection.port_a_id || connection.port_b_id;
+    for (const remoteAsset of rackAssets) {
+      for (const remotePort of remoteAsset.ports) {
+        if (remotePort.id === remotePortId) {
+          return { asset: remoteAsset, port: remotePort };
+        }
+      }
+    }
+    return { asset: null, port: null };
   };
   
   if (addingAssetSlot !== null) {
@@ -162,7 +210,7 @@ export function AssetDetailPanel({ asset, rackAssets, tenantId, rackId, rackLoca
                         <DialogTitle className="font-headline text-2xl">Generar Puertos en Lote</DialogTitle>
                         <DialogDescription>Crea múltiples puertos con un prefijo y numeración secuencial.</DialogDescription>
                       </DialogHeader>
-                      <BulkPortGeneratorForm assetId={asset.id} tenantId={tenantId} onSuccess={() => { setIsBulkDialogOpen(false); router.refresh(); }} />
+                      <BulkPortGeneratorForm assetId={asset.id} assetType={asset.asset_type} tenantId={tenantId} onSuccess={() => { setIsBulkDialogOpen(false); router.refresh(); }} />
                     </DialogContent>
                   </Dialog>
                   {/* Placeholder for single port add */}
@@ -173,21 +221,33 @@ export function AssetDetailPanel({ asset, rackAssets, tenantId, rackId, rackLoca
               {assetPorts.length > 0 ? (
                 <ul className="space-y-2 text-sm max-h-60 overflow-y-auto pr-2">
                   {assetPorts.map(port => {
-                    const isConnected = port.connections_port_a.length > 0 || port.connections_port_b.length > 0;
+                    const connection = port.connections_port_a[0] || port.connections_port_b[0];
+                    const isConnected = !!connection;
+                    const { asset: remoteAsset, port: remotePort } = isConnected ? findRemoteConnectionInfo(connection) : { asset: null, port: null };
+                    
                     return (
                       <li key={port.id} className="p-2 bg-gray-800/30 rounded-md border border-purple-500/20 flex justify-between items-center group">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-grow">
                           <div className={cn("w-2 h-2 rounded-full", isConnected ? 'bg-green-500' : 'bg-gray-500')} title={isConnected ? 'Conectado' : 'Libre'}></div>
                           <div>
                             <span className="text-gray-200 font-medium">{port.name || 'Puerto sin nombre'}</span>
                             <Badge variant="outline" className="ml-2 text-xs border-cyan-500/50 text-cyan-300">{port.port_type || 'N/A'}</Badge>
                           </div>
+                          {isConnected && remoteAsset && remotePort && (
+                             <div className="flex items-center text-gray-400 text-xs ml-4 gap-2">
+                               <ArrowRight className="h-3 w-3 text-cyan-400" />
+                               <span>{remoteAsset.name} / {remotePort.name}</span>
+                             </div>
+                          )}
                         </div>
-                        {isConnected ? (
-                          <Button variant="destructive" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDisconnect(port)}><Trash2 className="mr-2 h-4 w-4"/>Desconectar</Button>
-                        ) : (
-                          <Button variant="secondary" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => { setPortToConnect(port); setIsConnectDialogOpen(true); }}><Cable className="mr-2 h-4 w-4"/>Conectar</Button>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {isConnected && connection && <CableDetailsTooltip connection={connection} />}
+                          {isConnected ? (
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-500 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDisconnect(port)}><Trash2 className="h-4 w-4"/></Button>
+                          ) : (
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-500 hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => { setPortToConnect(port); setIsConnectDialogOpen(true); }}><Cable className="h-4 w-4"/></Button>
+                          )}
+                        </div>
                       </li>
                     );
                   })}
@@ -202,9 +262,10 @@ export function AssetDetailPanel({ asset, rackAssets, tenantId, rackId, rackLoca
       
       {portToConnect && (
         <Dialog open={isConnectDialogOpen} onOpenChange={setIsConnectDialogOpen}>
-          <DialogContent className="glassmorphic-card border-purple-500/40 text-gray-50 sm:max-w-4xl">
+          <DialogContent className="glassmorphic-card border-purple-500/40 text-gray-50 sm:max-w-xl">
              <ConnectPortDialog 
                 portA={portToConnect}
+                portA_assetType={asset?.asset_type || null}
                 tenantId={tenantId}
                 assetsInSameRack={assetsInSameRack}
                 onSuccess={() => { setIsConnectDialogOpen(false); setPortToConnect(null); router.refresh(); }}

@@ -31,6 +31,7 @@ export interface PortConnectionInfo {
   id: string;
   port_b_id?: string;
   port_a_id?: string;
+  details: Json | null;
 }
 
 export interface PortDetails {
