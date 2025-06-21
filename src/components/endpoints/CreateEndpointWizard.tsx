@@ -1,8 +1,10 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Label } from '@/components/ui/label';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,11 +31,11 @@ interface CreateEndpointWizardProps {
 
 const wizardSchema = z.object({
   // Step 1
-  endpointName: z.string().min(1, 'El nombre del punto de red es requerido.'),
   endpointLocationId: z.string().uuid('Debe seleccionar una ubicación válida.'),
-  jackBrand: z.string().optional(),
-  jackCategory: z.string().optional(),
-  jackColor: z.string().optional(),
+  horizontalCableBrand: z.string().optional(),
+  horizontalCableColor: z.string().optional(),
+  horizontalCableCategory: z.string().optional(),
+  horizontalCableLengthM: z.coerce.number().optional().nullable(),
   
   // Step 2
   connectionChoice: z.enum(['empty', 'connect_new']).default('empty'),
@@ -57,14 +59,13 @@ export function CreateEndpointWizard({ tenantId, rearPortToConnect, locations, o
   const [isLoading, setIsLoading] = useState(false);
   const [currentDynamicSchema, setCurrentDynamicSchema] = useState<FieldDefinition[]>([]);
 
+  const endpointName = rearPortToConnect.name?.replace(/-R$/, '') || 'Punto de red sin nombre';
+
   const form = useForm<WizardFormValues>({
     resolver: zodResolver(wizardSchema),
     defaultValues: {
-      endpointName: '',
       endpointLocationId: '',
-      jackBrand: '',
-      jackCategory: 'CAT6a',
-      jackColor: 'Blanco',
+      horizontalCableCategory: 'CAT6a',
       connectionChoice: 'empty',
       deviceType: '',
     },
@@ -85,20 +86,14 @@ export function CreateEndpointWizard({ tenantId, rearPortToConnect, locations, o
     setIsLoading(true);
     try {
         // Step 1: Create Endpoint Asset (the jack/faceplate)
-        const endpointDetails = {
-            brand: values.jackBrand,
-            category: values.jackCategory,
-            color: values.jackColor,
-        };
         const { data: endpointAsset, error: endpointAssetError } = await supabase
             .from('assets')
             .insert({
                 tenant_id: tenantId,
                 location_id: values.endpointLocationId,
-                name: values.endpointName,
+                name: endpointName, // Use auto-generated name
                 asset_type: 'ENDPOINT_USER',
                 status: 'IN_PRODUCTION',
-                details: endpointDetails,
             })
             .select()
             .single();
@@ -115,10 +110,20 @@ export function CreateEndpointWizard({ tenantId, rearPortToConnect, locations, o
         if (endpointPortError) throw new Error(`Error creando el puerto del punto de red: ${endpointPortError.message}`);
 
         // Step 3: Create Horizontal Cable Connection (Patch Panel Rear -> Endpoint Jack)
-        // For now, details for horizontal cable are not in the form, can be added later
+        const horizontalCableDetails = {
+            brand: values.horizontalCableBrand,
+            color: values.horizontalCableColor,
+            category: values.horizontalCableCategory,
+            length_m: values.horizontalCableLengthM,
+        };
         const { error: horizontalConnectionError } = await supabase
             .from('connections')
-            .insert({ port_a_id: rearPortToConnect.id, port_b_id: endpointPort.id, tenant_id: tenantId });
+            .insert({ 
+                port_a_id: rearPortToConnect.id, 
+                port_b_id: endpointPort.id, 
+                tenant_id: tenantId,
+                details: horizontalCableDetails,
+            });
         
         if (horizontalConnectionError) throw new Error(`Error creando la conexión horizontal: ${horizontalConnectionError.message}`);
 
@@ -187,19 +192,17 @@ export function CreateEndpointWizard({ tenantId, rearPortToConnect, locations, o
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-2">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-2 max-h-[70vh] overflow-y-auto pr-4">
         
         {/* Step 1: Endpoint Definition */}
         <section>
           <h3 className="font-semibold text-lg mb-4 flex items-center"><Network className="mr-2 h-5 w-5 text-sky-400"/>1. Definir Punto de Red (Jack/Faceplate)</h3>
           <div className="space-y-4 p-4 border rounded-md bg-input/20 border-purple-500/20">
-            <FormField control={form.control} name="endpointName" render={({ field }) => (
-              <FormItem>
-                <FormLabel>ID del Punto de Red</FormLabel>
-                <FormControl><Input placeholder="Ej: OFC-01-A, LAB-B2-04" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
+            <FormItem>
+              <FormLabel>ID del Punto de Red</FormLabel>
+              <FormControl><Input value={endpointName} disabled /></FormControl>
+            </FormItem>
+            
             <FormField control={form.control} name="endpointLocationId" render={({ field }) => (
               <FormItem>
                 <FormLabel>Ubicación Física del Punto de Red</FormLabel>
@@ -212,6 +215,17 @@ export function CreateEndpointWizard({ tenantId, rearPortToConnect, locations, o
                 <FormMessage />
               </FormItem>
             )} />
+
+            <div className="pt-4 mt-4 border-t border-purple-500/20">
+              <h4 className="font-semibold text-md mb-4">Detalles del Cableado Horizontal (Patch Panel a Jack)</h4>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <FormField control={form.control} name="horizontalCableBrand" render={({ field }) => (<FormItem><FormLabel>Marca</FormLabel><FormControl><Input placeholder="Marca" {...field} /></FormControl></FormItem>)} />
+                  <FormField control={form.control} name="horizontalCableColor" render={({ field }) => (<FormItem><FormLabel>Color</FormLabel><FormControl><Input placeholder="Color" {...field} /></FormControl></FormItem>)} />
+                  <FormField control={form.control} name="horizontalCableCategory" render={({ field }) => (<FormItem><FormLabel>Categoría</FormLabel><FormControl><Input placeholder="CAT6a" {...field} /></FormControl></FormItem>)} />
+                  <FormField control={form.control} name="horizontalCableLengthM" render={({ field }) => (<FormItem><FormLabel>Longitud (m)</FormLabel><FormControl><Input type="number" placeholder="25" {...field} /></FormControl></FormItem>)} />
+              </div>
+            </div>
+
           </div>
         </section>
 
@@ -275,7 +289,7 @@ export function CreateEndpointWizard({ tenantId, rearPortToConnect, locations, o
           </section>
         )}
         
-        <div className="flex justify-end gap-4 pt-4">
+        <div className="flex justify-end gap-4 pt-4 sticky bottom-0 bg-background/80 backdrop-blur-sm pb-2 -mx-6 px-6">
           <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>Cancelar</Button>
           <Button type="submit" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
