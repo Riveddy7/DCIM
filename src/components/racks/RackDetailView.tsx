@@ -7,7 +7,7 @@ import { RackVisualizer } from './RackVisualizer';
 import { AssetDetailPanel } from './AssetDetailPanel';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import type { RackWithAssetsAndPorts, AssetWithPorts } from '@/lib/database.types';
+import type { RackWithAssetsAndPorts } from '@/lib/database.types';
 import { useRouter } from 'next/navigation';
 
 interface RackDetailViewProps {
@@ -74,6 +74,7 @@ export function RackDetailView({ rackData, tenantId }: RackDetailViewProps) {
         <div className="lg:w-1/2">
           <AssetDetailPanel
             asset={selectedAsset}
+            rackAssets={assetsArray}
             tenantId={tenantId}
             rackId={rackData.id}
             rackLocationId={rackData.location_id}

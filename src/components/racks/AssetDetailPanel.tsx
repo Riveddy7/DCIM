@@ -19,6 +19,7 @@ import { createClient } from '@/lib/supabase/client';
 
 interface AssetDetailPanelProps {
   asset: AssetWithPorts | null;
+  rackAssets: AssetWithPorts[];
   tenantId: string;
   rackId: string;
   rackLocationId: string;
@@ -51,7 +52,7 @@ const renderJsonDetails = (details: Json | undefined | null): React.ReactNode =>
   );
 };
 
-export function AssetDetailPanel({ asset, tenantId, rackId, rackLocationId, addingAssetSlot, onAssetCreateSuccess, onCancelAddAsset }: AssetDetailPanelProps) {
+export function AssetDetailPanel({ asset, rackAssets, tenantId, rackId, rackLocationId, addingAssetSlot, onAssetCreateSuccess, onCancelAddAsset }: AssetDetailPanelProps) {
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
@@ -59,6 +60,8 @@ export function AssetDetailPanel({ asset, tenantId, rackId, rackLocationId, addi
   const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [isConnectDialogOpen, setIsConnectDialogOpen] = useState(false);
   const [portToConnect, setPortToConnect] = useState<PortDetails | null>(null);
+  
+  const assetsInSameRack = asset ? rackAssets.filter(a => a.id !== asset.id) : [];
 
   const handleDisconnect = async (port: PortDetails) => {
     const connection = port.connections_port_a[0] || port.connections_port_b[0];
@@ -203,6 +206,7 @@ export function AssetDetailPanel({ asset, tenantId, rackId, rackLocationId, addi
              <ConnectPortDialog 
                 portA={portToConnect}
                 tenantId={tenantId}
+                assetsInSameRack={assetsInSameRack}
                 onSuccess={() => { setIsConnectDialogOpen(false); setPortToConnect(null); router.refresh(); }}
                 onCancel={() => { setIsConnectDialogOpen(false); setPortToConnect(null); }}
              />

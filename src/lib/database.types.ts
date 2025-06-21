@@ -410,6 +410,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: { 
+      get_free_ports_for_asset: {
+        Args: { asset_id_param: string }
+        Returns: { id: string; name: string | null; port_type: string | null }[]
+      }
       get_network_ports_stats: {
         Args: { tenant_id_param: string } 
         Returns: { total_ports: number; used_ports: number }[] 
