@@ -63,7 +63,7 @@ export function ConnectPortDialog({ portA, tenantId, assetsInSameRack, onSuccess
         .select('id, name')
         .eq('tenant_id', tenantId)
         .ilike('name', `%${debouncedSearchTerm}%`)
-        .not('id', 'in', `(${[portA.asset_id, ...assetIdsInRack].join(',')})`)
+        .not('id', 'in', `(${[portA.asset_id, ...assetIdsInRack].map(id => `'${id}'`).join(',')})`)
         .limit(10);
 
       if (error) {
@@ -119,7 +119,7 @@ export function ConnectPortDialog({ portA, tenantId, assetsInSameRack, onSuccess
   };
 
   const memoizedPortList = useMemo(() => (
-    <ScrollArea className="h-full border rounded-md p-2 bg-input/50">
+    <ScrollArea className="h-72 border rounded-md p-2 bg-input/50">
       {isLoadingPorts ? <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>
         : targetPorts.length > 0 ? (
           <ul className="space-y-1">

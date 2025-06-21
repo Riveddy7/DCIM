@@ -103,3 +103,27 @@
     animation: gradient-bg 15s ease infinite;
   }
 }
+
+/* Custom Scrollbar for Aurora Glow Theme */
+/* Works on Webkit-based browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: rgba(41, 37, 54, 0.5); /* Un fondo oscuro y sutil */
+  border-radius: 10px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.5); /* Morado semitransparente */
+  border-radius: 10px;
+  border: 1px solid rgba(192, 132, 252, 0.5);
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(192, 132, 252, 0.7); /* Morado más brillante al pasar el ratón */
+}
