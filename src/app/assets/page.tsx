@@ -228,7 +228,15 @@ export default function AssetsPage() {
             ) : (
               assets.map((asset) => (
                 <TableRow key={asset.id} className="hover:bg-primary/10 border-purple-500/10">
-                  <TableCell className="font-medium text-gray-50">{asset.name}</TableCell>
+                  <TableCell className="font-medium">
+                    {asset.rack_id ? (
+                      <Link href={`/racks/${asset.rack_id}?highlightAsset=${asset.id}`} className="text-gray-50 hover:text-primary hover:underline">
+                        {asset.name}
+                      </Link>
+                    ) : (
+                      <span className="text-gray-50">{asset.name}</span>
+                    )}
+                  </TableCell>
                   <TableCell>{asset.asset_type?.replace(/_/g, ' ') || 'N/A'}</TableCell>
                   <TableCell><Badge variant="outline" className="border-purple-500/30 text-purple-300">{asset.status?.replace(/_/g, ' ') || 'N/A'}</Badge></TableCell>
                   <TableCell>

@@ -8,7 +8,7 @@ import { AssetDetailPanel } from './AssetDetailPanel';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import type { RackWithAssetsAndPorts } from '@/lib/database.types';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface RackDetailViewProps {
   rackData: RackWithAssetsAndPorts;
@@ -16,9 +16,13 @@ interface RackDetailViewProps {
 }
 
 export function RackDetailView({ rackData, tenantId }: RackDetailViewProps) {
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
-  const [addingAssetSlot, setAddingAssetSlot] = useState<number | null>(null);
+  const searchParams = useSearchParams();
   const router = useRouter();
+
+  const highlightedAssetId = searchParams.get('highlightAsset');
+
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(highlightedAssetId);
+  const [addingAssetSlot, setAddingAssetSlot] = useState<number | null>(null);
 
   const handleAssetSelect = (assetId: string) => {
     setSelectedAssetId(assetId);
@@ -87,5 +91,3 @@ export function RackDetailView({ rackData, tenantId }: RackDetailViewProps) {
     </div>
   );
 }
-
-    
