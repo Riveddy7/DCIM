@@ -148,6 +148,9 @@ export type Database = {
           parent_location_id: string | null
           name: string
           description: string | null
+          floor_plan_image_url: string | null
+          grid_columns: number | null
+          grid_rows: number | null
         }
         Insert: {
           id?: string
@@ -155,6 +158,9 @@ export type Database = {
           parent_location_id?: string | null
           name: string
           description?: string | null
+          floor_plan_image_url?: string | null
+          grid_columns?: number | null
+          grid_rows?: number | null
         }
         Update: {
           id?: string
@@ -162,6 +168,9 @@ export type Database = {
           parent_location_id?: string | null
           name?: string
           description?: string | null
+          floor_plan_image_url?: string | null
+          grid_columns?: number | null
+          grid_rows?: number | null
         }
         Relationships: [
           {
@@ -411,6 +420,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: { 
+      get_location_details: {
+        Args: { location_id_param: string }
+        Returns: {
+          id: string
+          tenant_id: string
+          parent_location_id: string | null
+          name: string
+          description: string | null
+          floor_plan_image_url: string | null
+          grid_columns: number | null
+          grid_rows: number | null
+          racks: Json
+        }[]
+      }
       get_free_ports_for_asset: {
         Args: { asset_id_param: string }
         Returns: { id: string; name: string | null; port_type: string | null }[]
