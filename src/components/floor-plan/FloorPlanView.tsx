@@ -27,7 +27,7 @@ export function FloorPlanView({ locations, tenantId }: FloorPlanViewProps) {
     setIsWizardOpen(false);
     // Here you would typically refetch the data for the floor plan
     // For now, we just close the modal.
-    alert('¡Configuración guardada! La visualización del plano se implementará en el siguiente paso.');
+    // NOTE: The toast is now handled inside the wizard itself.
   };
 
   return (
@@ -77,6 +77,7 @@ export function FloorPlanView({ locations, tenantId }: FloorPlanViewProps) {
                         </DialogHeader>
                         <SetupWizard 
                             locationId={selectedLocationId}
+                            tenantId={tenantId}
                             onSetupComplete={handleSetupComplete}
                         />
                     </DialogContent>

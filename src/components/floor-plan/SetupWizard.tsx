@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Loader2, UploadCloud, Crop, Grid3x3, CheckCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 // --- Utility Functions for Image Cropping ---
 
@@ -95,11 +96,13 @@ const rotateSize = (width: number, height: number, rotation: number) => {
 
 interface SetupWizardProps {
   locationId: string;
+  tenantId: string;
   onSetupComplete: () => void;
 }
 
-export function SetupWizard({ locationId, onSetupComplete }: SetupWizardProps) {
+export function SetupWizard({ locationId, tenantId, onSetupComplete }: SetupWizardProps) {
   const [step, setStep] = useState<'upload' | 'crop' | 'grid'>('upload');
+  const { toast } = useToast();
   
   // State for image handling
   const [originalFile, setOriginalFile] = useState<File | null>(null);
@@ -149,22 +152,53 @@ export function SetupWizard({ locationId, onSetupComplete }: SetupWizardProps) {
   };
 
   const handleSave = async () => {
-    // This is the placeholder function as requested.
-    // In a real implementation, you would trigger your n8n workflow here.
-    console.log({
-      message: 'Datos listos para enviar a n8n',
-      locationId: locationId,
-      originalFile: originalFile,
-      cropPixels: croppedAreaPixels,
-      grid: { cols: gridCols, rows: gridRows }
-    });
-    
-    // Simulate an async operation
+    if (!originalFile || !croppedAreaPixels) {
+      toast({ title: 'Faltan datos', description: 'Por favor, completa todos los pasos.', variant: 'destructive' });
+      return;
+    }
+
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    
-    onSetupComplete();
+
+    const formData = new FormData();
+    formData.append('file', originalFile);
+    formData.append('location_id', locationId);
+    formData.append('tenant_id', tenantId);
+    formData.append('crop_data', JSON.stringify(croppedAreaPixels));
+    formData.append('grid_cols', gridCols.toString());
+    formData.append('grid_rows', gridRows.toString());
+
+    try {
+      const webhookUrl = process.env.NEXT_PUBLIC_N8N_FLOORPLAN_WEBHOOK_URL;
+      if (!webhookUrl) {
+        throw new Error('La URL del webhook no está configurada.');
+      }
+
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        body: formData,
+        // No agregar 'Content-Type' header aquí.
+      });
+
+      if (!response.ok) {
+        throw new Error(`El servidor de n8n respondió con el estado: ${response.status}`);
+      }
+
+      toast({
+        title: 'Procesando Plano',
+        description: 'Tu plano ha sido enviado y se está optimizando. Aparecerá en la lista en unos momentos.',
+      });
+      onSetupComplete();
+
+    } catch (error: any) {
+      console.error('Error al enviar el plano a n8n:', error);
+      toast({
+        title: 'Error de Subida',
+        description: error.message || 'No se pudo enviar el plano para su procesamiento.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   // Cleanup object URLs on unmount
