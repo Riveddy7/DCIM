@@ -1,13 +1,16 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { RackItem } from './RackItem';
-import type { Database, Json } from '@/lib/database.types';
+import { UnplacedRackItem } from './UnplacedRackItem';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import type { Database } from '@/lib/database.types';
 import { cn } from '@/lib/utils';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Server } from 'lucide-react';
 
 interface Rack {
   id: string;
@@ -29,9 +32,9 @@ interface FloorPlanCanvasProps {
   locationData: LocationData;
   initialRacks: Rack[];
   tenantId: string;
+  isEditMode: boolean;
 }
 
-// Sub-component for a droppable grid cell
 function DroppableCell({ x, y, isOver }: { x: number; y: number; isOver: boolean }) {
   const id = `cell-${x}-${y}`;
   return (
@@ -49,9 +52,8 @@ function DroppableCell({ x, y, isOver }: { x: number; y: number; isOver: boolean
   );
 }
 
-export function FloorPlanCanvas({ locationData, initialRacks, tenantId }: FloorPlanCanvasProps) {
+export function FloorPlanCanvas({ locationData, initialRacks, tenantId, isEditMode }: FloorPlanCanvasProps) {
   const [racks, setRacks] = useState(initialRacks);
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
   const supabase = createClient();
@@ -65,57 +67,53 @@ export function FloorPlanCanvas({ locationData, initialRacks, tenantId }: FloorP
     })
   );
 
-  const handleDragStart = (event: any) => {
-    setActiveId(event.active.id as string);
-  };
-  
+  const placedRacks = useMemo(() => racks.filter(r => r.pos_x && r.pos_y), [racks]);
+  const unplacedRacks = useMemo(() => racks.filter(r => !r.pos_x || !r.pos_y), [racks]);
+
   const handleDragOver = (event: any) => {
     setOverId(event.over?.id as string | null);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveId(null);
     setOverId(null);
+    const { active, over } = event;
 
-    if (over && active.id !== over.id) {
-      const draggedRackId = active.id as string;
-      const dropZoneId = over.id as string;
+    if (!over || !over.id.toString().startsWith('cell-')) {
+      // Invalid drop zone, do nothing.
+      return;
+    }
 
-      if (!dropZoneId.startsWith('cell-')) return;
+    const draggedRackId = active.id as string;
+    const dropZoneId = over.id as string;
+    
+    const [, newXStr, newYStr] = dropZoneId.split('-');
+    const newX = parseInt(newXStr, 10);
+    const newY = parseInt(newYStr, 10);
+    
+    const originalRacks = [...racks];
+    setRacks(prevRacks =>
+      prevRacks.map(rack =>
+        rack.id === draggedRackId ? { ...rack, pos_x: newX, pos_y: newY } : rack
+      )
+    );
+
+    const { error } = await supabase
+      .from('racks')
+      .update({ pos_x: newX, pos_y: newY })
+      .eq('id', draggedRackId);
       
-      const [, newXStr, newYStr] = dropZoneId.split('-');
-      const newX = parseInt(newXStr, 10);
-      const newY = parseInt(newYStr, 10);
-      
-      // Optimistic UI update
-      const originalRacks = [...racks];
-      setRacks(prevRacks =>
-        prevRacks.map(rack =>
-          rack.id === draggedRackId ? { ...rack, pos_x: newX, pos_y: newY } : rack
-        )
-      );
-
-      // Persist to database
-      const { error } = await supabase
-        .from('racks')
-        .update({ pos_x: newX, pos_y: newY })
-        .eq('id', draggedRackId);
-        
-      if (error) {
-        toast({
-          title: 'Error al mover el rack',
-          description: error.message,
-          variant: 'destructive',
-        });
-        // Revert optimistic update on failure
-        setRacks(originalRacks);
-      } else {
-        toast({
-          title: 'Rack movido',
-          description: 'La nueva posición del rack ha sido guardada.',
-        });
-      }
+    if (error) {
+      toast({
+        title: 'Error al mover el rack',
+        description: error.message,
+        variant: 'destructive',
+      });
+      setRacks(originalRacks);
+    } else {
+      toast({
+        title: 'Rack movido',
+        description: 'La nueva posición del rack ha sido guardada.',
+      });
     }
   };
 
@@ -129,21 +127,18 @@ export function FloorPlanCanvas({ locationData, initialRacks, tenantId }: FloorP
   return (
     <DndContext 
         sensors={sensors} 
-        onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
     >
-        <div className="relative w-full aspect-video rounded-lg overflow-hidden glassmorphic-card p-1">
-            {locationData.floor_plan_image_url ? (
-                <div
-                    className="absolute inset-0 bg-cover bg-center"
-                    style={{ backgroundImage: `url(${locationData.floor_plan_image_url})` }}
-                />
-            ) : (
-                <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
-                    <p className="text-gray-500">Sin imagen de plano de planta.</p>
-                </div>
-            )}
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="relative w-full aspect-video rounded-lg overflow-hidden glassmorphic-card p-1 flex-grow">
+            <div
+                className={cn(
+                  "absolute inset-0 bg-cover bg-center transition-all duration-300",
+                  isEditMode && "grayscale opacity-20"
+                )}
+                style={{ backgroundImage: `url(${locationData.floor_plan_image_url})` }}
+            />
             
             <div
                 className="relative h-full w-full grid"
@@ -152,24 +147,49 @@ export function FloorPlanCanvas({ locationData, initialRacks, tenantId }: FloorP
                     gridTemplateRows: `repeat(${rows}, 1fr)`,
                 }}
             >
-                {/* Render droppable grid cells */}
-                {Array.from({ length: cols * rows }).map((_, index) => {
-                    const x = (index % cols) + 1;
-                    const y = Math.floor(index / cols) + 1;
-                    const id = `cell-${x}-${y}`;
-                    return <DroppableCell key={id} x={x} y={y} isOver={overId === id}/>;
-                })}
+                {isEditMode && (
+                  <>
+                    {Array.from({ length: cols * rows }).map((_, index) => {
+                        const x = (index % cols) + 1;
+                        const y = Math.floor(index / cols) + 1;
+                        const id = `cell-${x}-${y}`;
+                        return <DroppableCell key={id} x={x} y={y} isOver={overId === id}/>;
+                    })}
+                  </>
+                )}
 
-                {/* Render draggable racks */}
-                {racks.map(rack => (
-                  rack.pos_x && rack.pos_y && <RackItem key={rack.id} rack={rack} />
+                {placedRacks.map(rack => (
+                  <RackItem key={rack.id} rack={rack} isEditMode={isEditMode} />
                 ))}
             </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-400 mt-2">
-            <AlertTriangle className="h-4 w-4 text-amber-400"/>
-            Los racks sin posición asignada no se mostrarán en el plano. Para asignarlos, edita el rack y establece sus coordenadas X/Y.
+
+        {isEditMode && (
+          <Card className="glassmorphic-card w-full md:w-64 order-first md:order-last">
+            <CardHeader>
+              <CardTitle className="font-headline text-lg">Racks sin Colocar</CardTitle>
+              <CardDescription className="text-xs">Arrastra un rack al plano para posicionarlo.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {unplacedRacks.length > 0 ? (
+                unplacedRacks.map(rack => (
+                  <UnplacedRackItem key={rack.id} rack={rack} />
+                ))
+              ) : (
+                <p className="text-sm text-gray-400 text-center py-4">Todos los racks están en el plano.</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+       {!isEditMode && unplacedRacks.length > 0 && (
+         <div className="flex items-center gap-2 text-xs text-amber-400 mt-4 p-3 rounded-md bg-amber-500/10 border border-amber-500/20">
+            <AlertTriangle className="h-4 w-4"/>
+            Hay {unplacedRacks.length} rack(s) sin posición asignada. Activa el "Modo Edición" para colocarlos en el plano.
         </div>
+       )}
+
     </DndContext>
   );
 }

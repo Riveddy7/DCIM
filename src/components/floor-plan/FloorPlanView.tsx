@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -6,11 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { SetupWizard } from './SetupWizard';
 import { FloorPlanCanvas } from './FloorPlanCanvas';
-import { Map, PlusCircle, AlertTriangle, Loader2 } from 'lucide-react';
-import type { Database, Json } from '@/lib/database.types';
+import { Map, PlusCircle, AlertTriangle, Loader2, Pencil, Eye } from 'lucide-react';
+import type { Database } from '@/lib/database.types';
 
-type LocationDetails = Database['public']['Functions']['get_location_details']['Returns'][number] | null;
+// El tipo que devuelve nuestra RPC completa
+type LocationDetails = Database['public']['Functions']['get_location_details']['Returns'];
 
+// Definimos un tipo más simple para los racks para mayor claridad
 interface Rack {
   id: string;
   name: string;
@@ -20,7 +23,7 @@ interface Rack {
 }
 
 interface FloorPlanViewProps {
-  locationDetails: LocationDetails;
+  locationDetails: LocationDetails | null; // Puede ser null si la carga falla
   tenantId: string;
 }
 
@@ -28,21 +31,25 @@ export function FloorPlanView({ locationDetails, tenantId }: FloorPlanViewProps)
   const router = useRouter();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const handleSetupComplete = () => {
     setIsWizardOpen(false);
     setIsProcessing(true);
     
-    // Simulate n8n processing time before refreshing the page data
     setTimeout(() => {
       router.refresh();
-      setIsProcessing(false);
+      // No necesitamos setIsProcessing(false) porque la página se recargará por completo
     }, 4000);
   };
   
+  // --- CORRECCIÓN 1: Acceder a la propiedad 'racks' dentro de 'locationDetails' ---
   const initialRacks: Rack[] = locationDetails?.racks && Array.isArray(locationDetails.racks) 
     ? locationDetails.racks 
     : [];
+
+  // Extraemos los detalles de la ubicación para que el código sea más limpio
+  const locationData = locationDetails?.location;
 
   return (
     <div className="space-y-6">
@@ -54,19 +61,33 @@ export function FloorPlanView({ locationDetails, tenantId }: FloorPlanViewProps)
         </div>
       )}
 
-      {locationDetails ? (
+      {/* La primera condición comprueba si tenemos datos en absoluto */}
+      {locationData ? (
         <div className="mt-2">
-          {locationDetails.floor_plan_image_url ? (
-            <FloorPlanCanvas 
-              locationData={locationDetails}
-              initialRacks={initialRacks}
-              tenantId={tenantId}
-            />
+          {/* --- CORRECCIÓN 2: Comprobar la URL de la imagen DENTRO del sub-objeto 'location' --- */}
+          {locationData.floor_plan_image_url ? (
+            // Si la URL existe, renderizamos el lienzo
+            <>
+              <div className="flex justify-end mb-4">
+                  <Button onClick={() => setIsEditMode(prev => !prev)} variant="outline" className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300">
+                      {isEditMode ? <Eye className="mr-2 h-4 w-4" /> : <Pencil className="mr-2 h-4 w-4" />}
+                      {isEditMode ? 'Finalizar Edición' : 'Editar Plano'}
+                  </Button>
+              </div>
+              <FloorPlanCanvas 
+                locationData={locationData} // Pasamos solo el objeto de la ubicación
+                initialRacks={initialRacks}
+                tenantId={tenantId}
+                isEditMode={isEditMode}
+              />
+            </>
           ) : (
+            // Si la URL es NULL, mostramos el botón de configuración
             <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-purple-500/30 rounded-lg bg-gray-900/40">
                 <Map className="w-16 h-16 text-gray-500 mb-4" />
                 <h2 className="text-xl font-bold text-gray-300">Sin Plano Configurado</h2>
-                <p className="text-gray-400 mb-6">La ubicación "{locationDetails.name}" no tiene un plano de planta configurado.</p>
+                {/* Usamos locationData.name para el nombre */}
+                <p className="text-gray-400 mb-6">La ubicación "{locationData.name}" no tiene un plano de planta configurado.</p>
                 <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
                     <DialogTrigger asChild>
                         <Button size="lg" className="bg-primary hover:bg-primary/90 neon-glow-primary">
@@ -82,7 +103,7 @@ export function FloorPlanView({ locationDetails, tenantId }: FloorPlanViewProps)
                             </DialogDescription>
                         </DialogHeader>
                         <SetupWizard 
-                            locationId={locationDetails.id}
+                            locationId={locationData.id} // Pasamos el ID desde aquí
                             tenantId={tenantId}
                             onSetupComplete={handleSetupComplete}
                         />
@@ -92,6 +113,7 @@ export function FloorPlanView({ locationDetails, tenantId }: FloorPlanViewProps)
           )}
         </div>
       ) : (
+        // Si `locationDetails` es null (porque la RPC falló), mostramos el error
         <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-amber-500/30 rounded-lg bg-gray-900/40">
           <AlertTriangle className="w-16 h-16 text-amber-400 mb-4" />
           <h2 className="text-xl font-bold text-amber-300">Error al Cargar Detalles</h2>
