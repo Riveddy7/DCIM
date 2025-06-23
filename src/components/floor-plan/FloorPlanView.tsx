@@ -11,7 +11,7 @@ import { FloorPlanCanvas } from './FloorPlanCanvas';
 import { Map, PlusCircle, AlertTriangle } from 'lucide-react';
 import type { Database, Json } from '@/lib/database.types';
 
-type Location = Pick<Database['public']['Tables']['locations']['Row'], 'id' | 'name'>;
+type Location = Pick<Database['public']['Tables']['Row'], 'id' | 'name'>;
 type LocationDetails = Database['public']['Functions']['get_location_details']['Returns'][number] | null;
 
 interface Rack {
@@ -67,7 +67,7 @@ export function FloorPlanView({ locations, selectedLocationId, locationDetails, 
         </CardContent>
       </Card>
 
-      {locationDetails && (
+      {locationDetails ? (
         <div className="mt-6">
           {locationDetails.floor_plan_image_url ? (
             <FloorPlanCanvas 
@@ -104,9 +104,7 @@ export function FloorPlanView({ locations, selectedLocationId, locationDetails, 
             </div>
           )}
         </div>
-      )}
-
-      {!locationDetails && (
+      ) : (
         <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-amber-500/30 rounded-lg bg-gray-900/40">
           <AlertTriangle className="w-16 h-16 text-amber-400 mb-4" />
           <h2 className="text-xl font-bold text-amber-300">Error al Cargar Detalles</h2>
