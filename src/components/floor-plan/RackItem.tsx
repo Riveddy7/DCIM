@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useDraggable } from '@dnd-kit/core';
-import { cn } from '@/lib/utils';
-import { Server } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { Server, Undo2 } from 'lucide-react';
 
 interface Rack {
   id: string;
@@ -17,48 +17,54 @@ interface Rack {
 interface RackItemProps {
   rack: Rack;
   isEditMode: boolean;
+  onUnplace: (rackId: string) => void;
 }
 
-export function RackItem({ rack, isEditMode }: RackItemProps) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: rack.id,
-    disabled: !isEditMode,
-  });
-
+export function RackItem({ rack, isEditMode, onUnplace }: RackItemProps) {
   const style = {
     gridColumnStart: rack.pos_x ?? undefined,
     gridRowStart: rack.pos_y ?? undefined,
-    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
-    zIndex: isDragging ? 100 : 10,
-    boxShadow: isDragging ? '0 10px 20px rgba(0,0,0,0.2), 0 6px 6px rgba(0,0,0,0.25)' : undefined,
+    zIndex: 10,
   };
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            ref={setNodeRef}
-            style={style}
-            {...listeners}
-            {...attributes}
-            className={cn(
-              "relative flex items-center justify-center p-1 rounded-sm",
-              "bg-primary/70 border border-primary-foreground/50 text-primary-foreground",
-              "hover:bg-primary hover:z-20 transition-all",
-              isEditMode && "cursor-grab",
-              isDragging && "cursor-grabbing z-50",
-            )}
-          >
-            <Server className="h-4 w-4" />
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="font-bold">{rack.name}</p>
-          <p className="text-xs text-gray-400">Pos: ({rack.pos_x}, {rack.pos_y})</p>
-          <p className="text-xs text-gray-400">Tamaño: {rack.total_u}U</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <div
+      style={style}
+      className={cn(
+        "relative flex group items-center justify-center p-1 rounded-sm",
+        "bg-primary/70 border border-primary-foreground/50 text-primary-foreground",
+        "transition-all"
+      )}
+    >
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center justify-center w-full h-full">
+               <Server className="h-4 w-4" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="font-bold">{rack.name}</p>
+            <p className="text-xs text-gray-400">Pos: ({rack.pos_x}, {rack.pos_y})</p>
+            <p className="text-xs text-gray-400">Tamaño: {rack.total_u}U</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      {isEditMode && (
+        <Button
+            variant="destructive"
+            size="icon"
+            className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-20"
+            onClick={(e) => {
+                e.stopPropagation();
+                onUnplace(rack.id);
+            }}
+            title="Devolver a la paleta"
+        >
+            <Undo2 className="h-3 w-3" />
+        </Button>
+      )}
+    </div>
   );
 }

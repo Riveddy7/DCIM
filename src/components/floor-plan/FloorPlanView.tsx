@@ -43,12 +43,10 @@ export function FloorPlanView({ locationDetails, tenantId }: FloorPlanViewProps)
     }, 4000);
   };
   
-  // --- CORRECCIÓN 1: Acceder a la propiedad 'racks' dentro de 'locationDetails' ---
   const initialRacks: Rack[] = locationDetails?.racks && Array.isArray(locationDetails.racks) 
     ? locationDetails.racks 
     : [];
 
-  // Extraemos los detalles de la ubicación para que el código sea más limpio
   const locationData = locationDetails?.location;
 
   return (
@@ -61,12 +59,9 @@ export function FloorPlanView({ locationDetails, tenantId }: FloorPlanViewProps)
         </div>
       )}
 
-      {/* La primera condición comprueba si tenemos datos en absoluto */}
       {locationData ? (
         <div className="mt-2">
-          {/* --- CORRECCIÓN 2: Comprobar la URL de la imagen DENTRO del sub-objeto 'location' --- */}
           {locationData.floor_plan_image_url ? (
-            // Si la URL existe, renderizamos el lienzo
             <>
               <div className="flex justify-end mb-4">
                   <Button onClick={() => setIsEditMode(prev => !prev)} variant="outline" className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300">
@@ -75,18 +70,17 @@ export function FloorPlanView({ locationDetails, tenantId }: FloorPlanViewProps)
                   </Button>
               </div>
               <FloorPlanCanvas 
-                locationData={locationData} // Pasamos solo el objeto de la ubicación
+                locationData={locationData}
                 initialRacks={initialRacks}
                 tenantId={tenantId}
                 isEditMode={isEditMode}
+                onRacksUpdate={() => router.refresh()}
               />
             </>
           ) : (
-            // Si la URL es NULL, mostramos el botón de configuración
             <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-purple-500/30 rounded-lg bg-gray-900/40">
                 <Map className="w-16 h-16 text-gray-500 mb-4" />
                 <h2 className="text-xl font-bold text-gray-300">Sin Plano Configurado</h2>
-                {/* Usamos locationData.name para el nombre */}
                 <p className="text-gray-400 mb-6">La ubicación "{locationData.name}" no tiene un plano de planta configurado.</p>
                 <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
                     <DialogTrigger asChild>
@@ -103,7 +97,7 @@ export function FloorPlanView({ locationDetails, tenantId }: FloorPlanViewProps)
                             </DialogDescription>
                         </DialogHeader>
                         <SetupWizard 
-                            locationId={locationData.id} // Pasamos el ID desde aquí
+                            locationId={locationData.id}
                             tenantId={tenantId}
                             onSetupComplete={handleSetupComplete}
                         />
@@ -113,7 +107,6 @@ export function FloorPlanView({ locationDetails, tenantId }: FloorPlanViewProps)
           )}
         </div>
       ) : (
-        // Si `locationDetails` es null (porque la RPC falló), mostramos el error
         <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-amber-500/30 rounded-lg bg-gray-900/40">
           <AlertTriangle className="w-16 h-16 text-amber-400 mb-4" />
           <h2 className="text-xl font-bold text-amber-300">Error al Cargar Detalles</h2>
