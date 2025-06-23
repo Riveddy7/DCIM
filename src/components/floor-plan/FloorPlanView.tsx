@@ -3,15 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SetupWizard } from './SetupWizard';
 import { FloorPlanCanvas } from './FloorPlanCanvas';
-import { Map, PlusCircle, AlertTriangle } from 'lucide-react';
+import { Map, PlusCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import type { Database, Json } from '@/lib/database.types';
 
-type Location = Pick<Database['public']['Tables']['Row'], 'id' | 'name'>;
 type LocationDetails = Database['public']['Functions']['get_location_details']['Returns'][number] | null;
 
 interface Rack {
@@ -23,52 +20,42 @@ interface Rack {
 }
 
 interface FloorPlanViewProps {
-  locations: Location[];
-  selectedLocationId: string;
   locationDetails: LocationDetails;
   tenantId: string;
 }
 
-export function FloorPlanView({ locations, selectedLocationId, locationDetails, tenantId }: FloorPlanViewProps) {
+export function FloorPlanView({ locationDetails, tenantId }: FloorPlanViewProps) {
   const router = useRouter();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
-
-  const handleLocationChange = (locationId: string) => {
-    router.push(`/floor-plan?location=${locationId}`);
-  };
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSetupComplete = () => {
     setIsWizardOpen(false);
-    router.refresh();
+    setIsProcessing(true);
+    
+    // Simulate n8n processing time before refreshing the page data
+    setTimeout(() => {
+      router.refresh();
+      setIsProcessing(false);
+    }, 4000);
   };
   
-  const initialRacks: Rack[] = Array.isArray(locationDetails?.racks) ? locationDetails.racks : [];
+  const initialRacks: Rack[] = locationDetails?.racks && Array.isArray(locationDetails.racks) 
+    ? locationDetails.racks 
+    : [];
 
   return (
     <div className="space-y-6">
-      <Card className="glassmorphic-card">
-        <CardHeader>
-          <CardTitle>Seleccionar Ubicación</CardTitle>
-          <CardDescription>Elige la ubicación para la cual deseas ver o configurar un plano de planta.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Select onValueChange={handleLocationChange} value={selectedLocationId}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecciona una ubicación..." />
-            </SelectTrigger>
-            <SelectContent>
-              {locations.map(location => (
-                <SelectItem key={location.id} value={location.id}>
-                  {location.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
+      {isProcessing && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+          <Loader2 className="w-16 h-16 text-primary animate-spin" />
+          <p className="text-xl text-gray-200 mt-4">Procesando tu plano...</p>
+          <p className="text-sm text-gray-400 mt-1">La página se actualizará automáticamente.</p>
+        </div>
+      )}
 
       {locationDetails ? (
-        <div className="mt-6">
+        <div className="mt-2">
           {locationDetails.floor_plan_image_url ? (
             <FloorPlanCanvas 
               locationData={locationDetails}
@@ -95,7 +82,7 @@ export function FloorPlanView({ locations, selectedLocationId, locationDetails, 
                             </DialogDescription>
                         </DialogHeader>
                         <SetupWizard 
-                            locationId={selectedLocationId}
+                            locationId={locationDetails.id}
                             tenantId={tenantId}
                             onSetupComplete={handleSetupComplete}
                         />
