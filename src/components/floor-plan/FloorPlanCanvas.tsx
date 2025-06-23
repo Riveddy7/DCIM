@@ -134,8 +134,7 @@ export function FloorPlanCanvas({ locationData, initialRacks, tenantId, isEditMo
         <div className="relative w-full aspect-video rounded-lg overflow-hidden glassmorphic-card p-1 flex-grow">
             <div
                 className={cn(
-                  "absolute inset-0 bg-cover bg-center transition-all duration-300",
-                  isEditMode && "grayscale opacity-20"
+                  "absolute inset-0 bg-cover bg-center transition-opacity grayscale opacity-30"
                 )}
                 style={{ backgroundImage: `url(${locationData.floor_plan_image_url})` }}
             />
