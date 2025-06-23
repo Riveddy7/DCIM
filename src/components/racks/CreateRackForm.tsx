@@ -28,7 +28,7 @@ const rackFormSchema = z.object({
   name: z.string().min(1, 'El nombre del rack es requerido.'),
   location_id: z.string().uuid('Debe seleccionar una ubicación válida.'),
   total_u: z.coerce.number().int().positive('El total de UR debe ser un número positivo.'),
-  description: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 type RackFormValues = z.infer<typeof rackFormSchema>;
@@ -44,7 +44,7 @@ export function CreateRackForm({ locations, tenantId, onSuccess, onCancel }: Cre
       name: '',
       location_id: '',
       total_u: 42, // Default U
-      description: '',
+      notes: '',
     },
   });
 
@@ -134,7 +134,7 @@ export function CreateRackForm({ locations, tenantId, onSuccess, onCancel }: Cre
 
         <FormField
           control={form.control}
-          name="description"
+          name="notes"
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-gray-300">Descripción (Opcional)</FormLabel>
