@@ -1,25 +1,21 @@
-# Dockerfile
-
-# Al principio, define TODOS los argumentos que necesitarás
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ARG NEXT_PUBLIC_N8N_FLOORPLAN_WEBHOOK_URL
-
-# --- Etapa 2: Construcción (Build) ---
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# Pasa TODOS los argumentos al entorno de la construcción
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
-ENV NEXT_PUBLIC_N8N_FLOORPLAN_WEBHOOK_URL=$NEXT_PUBLIC_N8N_FLOORPLAN_WEBHOOK_URL
-
-RUN npm run build
+# --- Etapa 1: Dependencias ---
+    FROM node:20-alpine AS deps
+    WORKDIR /app
+    
+    COPY package.json package-lock.json ./
+    RUN npm install --frozen-lockfile
+    
+    # --- Etapa 2: Construcción (Build) ---
+    FROM node:20-alpine AS builder
+    WORKDIR /app
+    COPY --from=deps /app/node_modules ./node_modules
+    COPY . .
+    
+    # Next.js encontrará y usará el archivo .env automáticamente
+    RUN npm run build
     
     # --- Etapa 3: Producción (Runner) ---
-    FROM node:18-alpine AS runner
+    FROM node:20-alpine AS runner
     WORKDIR /app
     
     ENV NODE_ENV=production
