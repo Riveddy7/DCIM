@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AtSign, Lock, Loader2, TvMinimalPlay } from 'lucide-react';
+import { AtSign, Lock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -56,10 +56,17 @@ export default function LoginPage() {
       <Card className="w-full max-w-md glassmorphic-card">
         <CardHeader className="text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/20 neon-glow-primary">
-            <TvMinimalPlay className="h-8 w-8 text-primary" />
+            <svg
+              className="h-8 w-8 text-primary"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M12 0L15.27 8.73L24 12L15.27 15.27L12 24L8.73 15.27L0 12L8.73 8.73L12 0Z" />
+            </svg>
           </div>
           <CardTitle className="font-headline text-3xl font-bold text-gray-50">
-            Visión Latina
+            Zionary
           </CardTitle>
           <CardDescription className="text-gray-400">
             Ingresa para gestionar tu infraestructura.
@@ -112,7 +119,7 @@ export default function LoginPage() {
         </CardContent>
       </Card>
       <p className="mt-8 text-center text-sm text-gray-500">
-        &copy; {new Date().getFullYear()} Visión Latina DCIM. Todos los derechos reservados.
+        &copy; {new Date().getFullYear()} Zionary. Todos los derechos reservados.
       </p>
     </div>
   );

@@ -108,7 +108,7 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-bold font-headline text-gray-50">
             Hola, <span className="text-primary">{userName}</span>!
           </h1>
-          <p className="text-gray-400">Bienvenido a Visión Latina DCIM.</p>
+          <p className="text-gray-400">Bienvenido a Zionary.</p>
         </div>
         <form action={handleLogout}>
             <Button variant="outline" className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 mt-4 sm:mt-0">

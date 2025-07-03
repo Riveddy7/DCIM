@@ -46,7 +46,7 @@ export function AIAssistantWidget() {
       </DialogTrigger>
       <DialogContent className="glassmorphic-card border-purple-500/40 text-gray-50">
         <DialogHeader>
-          <DialogTitle className="font-headline text-2xl">Asistente IA de Visión Latina</DialogTitle>
+          <DialogTitle className="font-headline text-2xl">Asistente IA de Zionary</DialogTitle>
           <DialogDescription className="text-gray-400">
             Interfaz de chat con el asistente IA (Próximamente).
           </DialogDescription>

@@ -4,7 +4,7 @@
 export default function HomePage() {
   return (
     <div className="flex h-screen w-screen items-center justify-center">
-      <p>Loading Visión Latina...</p>
+      <p>Loading Zionary...</p>
     </div>
   );
 }
