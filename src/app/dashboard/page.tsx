@@ -121,7 +121,7 @@ export default async function DashboardPage() {
       <DashboardLayout>
         
         <Link href="/racks" className="contents">
-          <KPICard title="Total de Racks" value={totalRacks} icon={Archive} iconClassName="text-sky-400" />
+          <KPICard title="Total de Racks" value={totalRacks} icon={Archive} iconClassName="text-sky-400" className="h-full" />
         </Link>
         
         <div className="lg:col-span-2 lg:row-span-2 h-full">
@@ -130,9 +130,9 @@ export default async function DashboardPage() {
         
         <div className="flex flex-col gap-6 h-full">
             <Link href="/assets" className="contents">
-                <KPICard title="Total de Activos" value={totalAssets} icon={HardDrive} iconClassName="text-blue-400" />
+                <KPICard title="Total de Activos" value={totalAssets} icon={HardDrive} iconClassName="text-blue-400" className="h-full" />
             </Link>
-            <KPICard title="Activos Sin Asignar" value={unassignedAssets} icon={FileQuestion} iconClassName="text-rose-400" />
+            <KPICard title="Activos Sin Asignar" value={unassignedAssets} icon={FileQuestion} iconClassName="text-rose-400" className="h-full" />
         </div>
 
         <Link href={fullestRackInfo.id ? `/racks/${fullestRackInfo.id}` : '#'} className="contents">
@@ -141,6 +141,7 @@ export default async function DashboardPage() {
             value={fullestRackInfo.name !== 'N/A' ? `${fullestRackInfo.name}: ${fullestRackInfo.occupancy_percentage}%` : 'N/A'} 
             icon={Container} 
             iconClassName="text-amber-400" 
+            className="h-full"
           />
         </Link>
         
@@ -151,7 +152,7 @@ export default async function DashboardPage() {
         <NetworkPortsProgressCard 
           totalPorts={networkPortsStats.total_ports}
           usedPorts={networkPortsStats.used_ports}
-          className="lg:col-span-2" 
+          className="lg:col-span-2 h-full" 
         />
         
         <Link href="/floor-plan" className="contents">
