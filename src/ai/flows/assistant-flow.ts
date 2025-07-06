@@ -79,7 +79,7 @@ const assistantFlow = ai.defineFlow(
 `;
 
     // 3. Generate a response using the data as context
-    const { output } = await ai.generate({
+    const response = await ai.generate({
       prompt: `You are a helpful and concise DCIM assistant for a platform called Zionary.
 Given the following real-time data about the user's data center, answer their question.
 If the question is unrelated to data centers or the provided data, politely decline to answer.
@@ -92,6 +92,6 @@ ${query}
 `,
     });
 
-    return { response: output || "I'm sorry, I couldn't generate a response." };
+    return { response: response.text || "I'm sorry, I couldn't generate a response." };
   }
 );
