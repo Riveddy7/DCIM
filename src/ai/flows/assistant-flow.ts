@@ -38,60 +38,59 @@ const assistantFlow = ai.defineFlow(
     const supabase = createClient();
     const { query, tenantId } = input;
 
-    // 1. Fetch all relevant data points in parallel
+    // 1. Fetch more detailed data points in parallel
     const [
-      racksCountRes,
-      assetsCountRes,
+      racksOverviewRes,
       unassignedAssetsCountRes,
-      fullestRackRes,
       portsStatsRes,
     ] = await Promise.all([
-      supabase.from('racks').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId),
-      supabase.from('assets').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+      supabase.rpc('get_racks_overview', { tenant_id_param: tenantId }),
       supabase.from('assets').select('*', { count: 'exact', head: true }).is('rack_id', null).eq('tenant_id', tenantId),
-      supabase.rpc('get_fullest_rack', { tenant_id_param: tenantId }),
       supabase.rpc('get_network_ports_stats', { tenant_id_param: tenantId }),
     ]);
 
-    // 2. Format the fetched data into a context string
-    const totalRacks = racksCountRes.count ?? 0;
-    const totalAssets = assetsCountRes.count ?? 0;
+    // 2. Format the fetched data into a comprehensive context string
+    const racksOverview = racksOverviewRes.data || [];
     const unassignedAssets = unassignedAssetsCountRes.count ?? 0;
 
-    let fullestRackInfo = 'N/A';
-    if (fullestRackRes.data && fullestRackRes.data.length > 0) {
-      const rack = fullestRackRes.data[0];
-      fullestRackInfo = `${rack.name} at ${Number(rack.occupancy_percentage).toFixed(1)}% capacity`;
-    }
-
-    let networkPortsStats = 'N/A';
+    let networkPortsStats = 'No disponible.';
     if (portsStatsRes.data && portsStatsRes.data.length > 0) {
       const stats = portsStatsRes.data[0];
-      networkPortsStats = `${stats.used_ports} used out of ${stats.total_ports} total ports.`;
+      networkPortsStats = `${stats.used_ports} usados de ${stats.total_ports} puertos totales.`;
     }
 
+    const racksDetailString = racksOverview.map(rack => {
+        const totalU = rack.total_u || 0;
+        const occupiedU = rack.occupied_u || 0;
+        const availableU = totalU - occupiedU;
+        return `- Rack '${rack.name}' (${rack.location_name}): ${totalU}U total, ${occupiedU}U usados, ${availableU}U disponibles.`;
+    }).join('\n');
+
     const context = `
-- Total Racks: ${totalRacks}
-- Total Assets: ${totalAssets}
-- Unassigned Assets: ${unassignedAssets}
-- Fullest Rack: ${fullestRackInfo}
-- Network Ports: ${networkPortsStats}
+### Resumen General
+- Total de Racks: ${racksOverview.length}
+- Activos Sin Asignar a un Rack: ${unassignedAssets}
+- Uso de Puertos de Red: ${networkPortsStats}
+
+### Detalle de Ocupación de Racks
+${racksDetailString || 'No hay racks para mostrar.'}
 `;
 
-    // 3. Generate a response using the data as context
+    // 3. Generate a response using the new detailed context and Spanish prompt
     const response = await ai.generate({
-      prompt: `You are a helpful and concise DCIM assistant for a platform called Zionary.
-Given the following real-time data about the user's data center, answer their question.
-If the question is unrelated to data centers or the provided data, politely decline to answer.
+      prompt: `Eres un asistente de DCIM (Data Center Infrastructure Management) para una plataforma llamada Zionary. Eres servicial, conciso y DEBES responder siempre en español.
+Tu función es analizar los datos en tiempo real del centro de datos del usuario para responder a sus preguntas con precisión.
+Utiliza los datos para hacer recomendaciones, calcular la disponibilidad y ofrecer información útil. Por ejemplo, si te preguntan dónde instalar un nuevo equipo, recomienda el rack con más unidades (U) disponibles.
+Si la pregunta no está relacionada con la gestión de centros de datos o los datos proporcionados, declina amablemente la respuesta en español.
 
-Data Snapshot:
+Aquí está la información actual del centro de datos:
 ${context}
 
-User's Question:
+Pregunta del usuario:
 ${query}
 `,
     });
 
-    return { response: response.text || "I'm sorry, I couldn't generate a response." };
+    return { response: response.text || "Lo siento, no pude generar una respuesta." };
   }
 );
