@@ -9,6 +9,7 @@ import { NetworkPortsProgressCard } from '@/components/dashboard/NetworkPortsPro
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Archive, HardDrive, Container, FileQuestion, Map } from 'lucide-react';
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 
 export default async function DashboardPage() {
   const supabase = createClient();
@@ -117,27 +118,23 @@ export default async function DashboardPage() {
         </form>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <DashboardLayout>
         
-        {/* Col 1, Row 1 */}
         <Link href="/racks" className="contents">
           <KPICard title="Total de Racks" value={totalRacks} icon={Archive} iconClassName="text-sky-400" />
         </Link>
         
-        {/* Col 2-3, Row 1-2 (Anchor) */}
-        <div className="lg:col-span-2 lg:row-span-2">
+        <div className="lg:col-span-2 lg:row-span-2 h-full">
            <AIAssistantWidget />
         </div>
         
-        {/* Col 4, Row 1 - Divided KPIs */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 h-full">
             <Link href="/assets" className="contents">
                 <KPICard title="Total de Activos" value={totalAssets} icon={HardDrive} iconClassName="text-blue-400" />
             </Link>
             <KPICard title="Activos Sin Asignar" value={unassignedAssets} icon={FileQuestion} iconClassName="text-rose-400" />
         </div>
 
-        {/* Col 1, Row 2 */}
         <Link href={fullestRackInfo.id ? `/racks/${fullestRackInfo.id}` : '#'} className="contents">
           <KPICard 
             title="Rack Más Lleno" 
@@ -147,21 +144,18 @@ export default async function DashboardPage() {
           />
         </Link>
         
-        {/* Col 4, Row 2-3 */}
-        <div className="lg:row-span-2">
+        <div className="lg:row-span-2 h-full">
           <ToDoListWidget />
         </div>
         
-        {/* Col 1-2, Row 3 */}
         <NetworkPortsProgressCard 
           totalPorts={networkPortsStats.total_ports}
           usedPorts={networkPortsStats.used_ports}
           className="lg:col-span-2" 
         />
         
-        {/* Col 3, Row 3 - New Floor Plan Widget */}
         <Link href="/floor-plan" className="contents">
-            <Card className="glassmorphic-card flex flex-col items-center justify-center p-6 text-center hover:border-purple-400/70 transition-all duration-300 ease-in-out">
+            <Card className="glassmorphic-card flex flex-col items-center justify-center p-6 text-center hover:border-purple-400/70 transition-all duration-300 ease-in-out h-full">
                 <Map className="w-12 h-12 text-primary mb-4" />
                 <h2 className="text-xl font-headline font-bold text-gray-50">Planos de Planta</h2>
                 <p className="text-sm text-gray-400 mt-1">
@@ -170,7 +164,7 @@ export default async function DashboardPage() {
             </Card>
         </Link>
         
-      </div>
+      </DashboardLayout>
     </div>
   );
 }

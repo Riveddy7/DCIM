@@ -27,7 +27,7 @@ export function AIAssistantWidget() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Card className="glassmorphic-card col-span-1 md:col-span-2 row-span-2 flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:border-purple-400/50 transition-all duration-300 ease-in-out animated-gradient-bg">
+        <Card className="glassmorphic-card col-span-1 md:col-span-2 row-span-2 flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:border-purple-400/50 transition-all duration-300 ease-in-out animated-gradient-bg h-full">
           <div className="relative mb-6">
             <div className="absolute inset-0 rounded-full bg-primary opacity-30 blur-2xl animate-pulse"></div>
             <div className="relative w-32 h-32 rounded-full bg-primary/30 flex items-center justify-center animate-orb-pulse">
