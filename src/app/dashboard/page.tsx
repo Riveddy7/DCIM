@@ -125,7 +125,7 @@ export default async function DashboardPage() {
         </Link>
         
         <div className="lg:col-span-2 lg:row-span-2 h-full">
-           <AIAssistantWidget />
+           <AIAssistantWidget tenantId={tenantId} />
         </div>
         
         <div className="flex flex-col gap-6 h-full">

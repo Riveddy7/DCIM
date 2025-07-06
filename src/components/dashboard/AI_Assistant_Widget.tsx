@@ -1,61 +1,151 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { Sparkles, MessageCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useRef, useEffect } from 'react';
+import { Sparkles, User, Send, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { askAssistant } from '@/ai/flows/assistant-flow';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
-export function AIAssistantWidget() {
-  const router = useRouter();
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
-  // Placeholder for assistant interaction. For now, opens a dialog.
-  // Could navigate to /assistant page: router.push('/assistant');
-  const handleAssistantClick = () => {
-    // This function body is inside the DialogTrigger and DialogContent,
-    // so actual navigation would be done by a button inside the Dialog if needed.
-    // Or, remove Dialog and make the Card itself a button/link.
+interface AIAssistantWidgetProps {
+  tenantId: string;
+}
+
+export function AIAssistantWidget({ tenantId }: AIAssistantWidgetProps) {
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: 'assistant',
+      content: "Hola! Soy tu asistente de Zionary. Pregúntame sobre tu infraestructura, como '¿cuántos racks tenemos?'",
+    },
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Auto-scroll to bottom on new message
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo({
+        top: scrollAreaRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [messages]);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = { role: 'user', content: input };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      const result = await askAssistant({ query: input, tenantId });
+      const assistantMessage: Message = { role: 'assistant', content: result.response };
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error asking assistant:', error);
+      toast({
+        title: 'Error de IA',
+        description: 'No se pudo obtener una respuesta del asistente.',
+        variant: 'destructive',
+      });
+       const errorMessage: Message = { role: 'assistant', content: "Lo siento, tuve un problema para procesar tu solicitud." };
+       setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Card className="glassmorphic-card col-span-1 md:col-span-2 row-span-2 flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:border-purple-400/50 transition-all duration-300 ease-in-out animated-gradient-bg h-full">
-          <div className="relative mb-6">
-            <div className="absolute inset-0 rounded-full bg-primary opacity-30 blur-2xl animate-pulse"></div>
-            <div className="relative w-32 h-32 rounded-full bg-primary/30 flex items-center justify-center animate-orb-pulse">
-              <Sparkles className="h-16 w-16 text-primary-foreground drop-shadow-[0_0_8px_hsl(var(--primary))]" />
-            </div>
+    <Card className="glassmorphic-card flex flex-col h-full">
+      <CardHeader>
+        <CardTitle className="font-headline text-xl text-gray-50 flex items-center">
+          <Sparkles className="mr-2 h-5 w-5 text-primary" />
+          Asistente IA
+        </CardTitle>
+        <CardDescription className="text-gray-400">
+          Obtén información sobre tu infraestructura en tiempo real.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex-grow overflow-hidden flex flex-col">
+        <ScrollArea className="flex-grow" ref={scrollAreaRef}>
+          <div className="space-y-4 pr-4">
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={cn(
+                  'flex items-start gap-3',
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                )}
+              >
+                {message.role === 'assistant' && (
+                  <Avatar className="h-8 w-8 bg-primary/20">
+                    <AvatarFallback>
+                      <Sparkles className="h-5 w-5 text-primary" />
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+                <div
+                  className={cn(
+                    'max-w-xs rounded-lg p-3 text-sm lg:max-w-md',
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-input text-foreground'
+                  )}
+                >
+                  {message.content}
+                </div>
+                 {message.role === 'user' && (
+                   <Avatar className="h-8 w-8 bg-gray-600/50">
+                     <AvatarFallback>
+                       <User className="h-5 w-5 text-gray-300" />
+                     </AvatarFallback>
+                   </Avatar>
+                )}
+              </div>
+            ))}
+             {isLoading && (
+                <div className="flex items-start gap-3 justify-start">
+                    <Avatar className="h-8 w-8 bg-primary/20">
+                        <AvatarFallback>
+                            <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="max-w-xs rounded-lg p-3 text-sm bg-input text-foreground">
+                        Pensando...
+                    </div>
+                </div>
+            )}
           </div>
-          <CardTitle className="font-headline text-3xl mb-2 text-gray-50">Asistente IA</CardTitle>
-          <CardDescription className="text-gray-400 mb-4 max-w-xs">
-            Optimiza tu centro de datos con la ayuda de nuestra IA. Pregunta, analiza y gestiona.
-          </CardDescription>
-          <Button variant="secondary" size="lg" className="bg-purple-500 hover:bg-purple-400 text-primary-foreground neon-glow-primary">
-            <MessageCircle className="mr-2 h-5 w-5" />
-            Iniciar Asistente
+        </ScrollArea>
+      </CardContent>
+      <CardFooter>
+        <form onSubmit={handleSubmit} className="flex w-full items-center gap-2">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="¿Cuántos activos tengo sin asignar?"
+            className="bg-background/50 flex-grow"
+            disabled={isLoading}
+          />
+          <Button type="submit" size="icon" disabled={isLoading}>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
-        </Card>
-      </DialogTrigger>
-      <DialogContent className="glassmorphic-card border-purple-500/40 text-gray-50">
-        <DialogHeader>
-          <DialogTitle className="font-headline text-2xl">Asistente IA de Zionary</DialogTitle>
-          <DialogDescription className="text-gray-400">
-            Interfaz de chat con el asistente IA (Próximamente).
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4">
-          <p>Aquí iría la interfaz de chat con el asistente.</p>
-          <p className="mt-2 text-sm text-gray-500">Por ahora, esta es una demostración. La navegación a <code>/assistant</code> o una funcionalidad de chat completa se implementaría aquí.</p>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </form>
+      </CardFooter>
+    </Card>
   );
 }
