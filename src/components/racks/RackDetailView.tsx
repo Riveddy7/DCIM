@@ -50,18 +50,10 @@ export function RackDetailView({ rackData, tenantId }: RackDetailViewProps) {
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
       <header className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-headline text-gray-50">
+          <h1 className="text-3xl font-bold font-headline text-purple-500">
             {rackData.name || 'Detalles del Rack'}
           </h1>
-          <p className="text-gray-400">Visualiza y gestiona los activos de este rack. {rackData.notes ? `Notas: ${rackData.notes}` : ''}</p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/racks">
-            <Button variant="outline" className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Lista de Racks
-            </Button>
-          </Link>
+          <p className="text-gray-50">{rackData.notes || ''}</p>
         </div>
       </header>
 

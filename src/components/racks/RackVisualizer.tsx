@@ -28,7 +28,7 @@ export function RackVisualizer({ total_u, assets, selectedAssetId, onAssetSelect
   });
 
   return (
-    <div className="glassmorphic-card p-4">
+    <div className="glassmorphic-card-static p-4">
       <h3 className="font-headline text-lg text-gray-200 mb-4 text-center">Visualización del Rack</h3>
       <div className="flex">
         {/* Left U Markers */}

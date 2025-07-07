@@ -12,10 +12,10 @@ interface KPIProps {
 
 export function KPICard({ title, value, icon: Icon, className, iconClassName }: KPIProps) {
   return (
-    <Card className={cn("glassmorphic-card animate-subtle-pulse", className)}>
+    <Card className={cn("glassmorphic-card", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-gray-300">{title}</CardTitle>
-        <Icon className={cn("h-5 w-5 text-purple-400", iconClassName)} />
+        <Icon className={cn("h-5 w-5 text-purple-500", iconClassName)} />
       </CardHeader>
       <CardContent>
         <div className="text-4xl font-bold font-headline text-gray-50">{value}</div>

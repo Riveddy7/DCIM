@@ -25,7 +25,7 @@ export function NetworkPortsProgressCard({ totalPorts, usedPorts, className }: N
           <p className="text-sm text-gray-300">Puertos Usados: <span className="font-semibold text-gray-50">{usedPorts}</span></p>
           <p className="text-sm text-gray-300">Puertos Disponibles: <span className="font-semibold text-gray-50">{availablePorts}</span></p>
         </div>
-        <Progress value={usagePercentage} className="h-3 w-full [&>div]:bg-primary neon-glow-primary" aria-label={`${usagePercentage}% de puertos usados`} />
+        <Progress value={usagePercentage} className="h-3 w-full [&>div]:bg-purple-500" aria-label={`${usagePercentage}% de puertos usados`} />
         <p className="text-xs text-gray-400 mt-2 text-right">Total: {totalPorts} Puertos</p>
       </CardContent>
     </Card>

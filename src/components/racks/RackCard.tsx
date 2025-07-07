@@ -57,23 +57,23 @@ export function RackCard({ rack }: RackCardProps) {
         <CardContent className="space-y-4">
           <div className="flex items-center text-xs text-gray-400 gap-2">
             <HardDrive className="w-4 h-4 text-purple-400" />
-            <span>{rack.asset_count || 0} Assets</span>
+            <span>{rack.asset_count || 0} Activos</span>
           </div>
           
           <div>
             <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-medium text-gray-300">U Occupancy</span>
+              <span className="text-xs font-medium text-gray-300">Ocupación U</span>
               <span className="text-xs text-purple-300">{occupiedU} / {totalU} U ({uOccupancyPercentage}%)</span>
             </div>
-            <Progress value={uOccupancyPercentage} className="h-2 [&>div]:bg-primary neon-glow-primary" />
+            <Progress value={uOccupancyPercentage} className="h-2 [&>div]:bg-purple-500" />
           </div>
 
           <div>
             <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-medium text-gray-300">Port Availability</span>
-              <span className="text-xs text-teal-300">{usedPorts} Used / {availablePorts < 0 ? 0 : availablePorts} Free ({totalPorts} Total)</span>
+              <span className="text-xs font-medium text-gray-300">Disponibilidad de Puertos</span>
+              <span className="text-xs text-purple-300">{usedPorts} Usados / {availablePorts < 0 ? 0 : availablePorts} Libres ({totalPorts} Total)</span>
             </div>
-            <Progress value={portAvailabilityPercentage} className="h-2 [&>div]:bg-teal-500 neon-glow-secondary" />
+            <Progress value={portAvailabilityPercentage} className="h-2 [&>div]:bg-purple-500" />
           </div>
         </CardContent>
       </Card>

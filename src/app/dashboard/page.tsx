@@ -121,7 +121,7 @@ export default async function DashboardPage() {
       <DashboardLayout>
         
         <Link href="/racks" className="contents">
-          <KPICard title="Total de Racks" value={totalRacks} icon={Archive} iconClassName="text-sky-400" className="h-full" />
+          <KPICard title="Total de Racks" value={totalRacks} icon={Archive} iconClassName="text-purple-500" className="h-full" />
         </Link>
         
         <div className="lg:col-span-2 lg:row-span-2 h-full">
@@ -130,9 +130,9 @@ export default async function DashboardPage() {
         
         <div className="flex flex-col gap-6 h-full">
             <Link href="/assets" className="contents">
-                <KPICard title="Total de Activos" value={totalAssets} icon={HardDrive} iconClassName="text-blue-400" className="h-full" />
+                <KPICard title="Total de Activos" value={totalAssets} icon={HardDrive} iconClassName="text-purple-500" className="h-full" />
             </Link>
-            <KPICard title="Activos Sin Asignar" value={unassignedAssets} icon={FileQuestion} iconClassName="text-rose-400" className="h-full" />
+            <KPICard title="Activos Sin Asignar" value={unassignedAssets} icon={FileQuestion} iconClassName="text-purple-500" className="h-full" />
         </div>
 
         <Link href={fullestRackInfo.id ? `/racks/${fullestRackInfo.id}` : '#'} className="contents">
@@ -140,7 +140,7 @@ export default async function DashboardPage() {
             title="Rack Más Lleno" 
             value={fullestRackInfo.name !== 'N/A' ? `${fullestRackInfo.name}: ${fullestRackInfo.occupancy_percentage}%` : 'N/A'} 
             icon={Container} 
-            iconClassName="text-amber-400" 
+            iconClassName="text-purple-500" 
             className="h-full"
           />
         </Link>
@@ -156,8 +156,8 @@ export default async function DashboardPage() {
         />
         
         <Link href="/floor-plan" className="contents">
-            <Card className="glassmorphic-card flex flex-col items-center justify-center p-6 text-center hover:border-purple-400/70 transition-all duration-300 ease-in-out h-full">
-                <Map className="w-12 h-12 text-primary mb-4" />
+            <Card className="glassmorphic-card flex flex-col items-center justify-center p-6 text-center h-full">
+                <Map className="w-12 h-12 text-purple-500 mb-4" />
                 <h2 className="text-xl font-headline font-bold text-gray-50">Planos de Planta</h2>
                 <p className="text-sm text-gray-400 mt-1">
                     Visualiza y gestiona la disposición física de tu infraestructura.

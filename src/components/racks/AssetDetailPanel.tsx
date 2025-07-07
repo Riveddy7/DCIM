@@ -163,7 +163,7 @@ export function AssetDetailPanel({ asset, rackAssets, tenantId, rackId, rackLoca
 
   if (addingAssetSlot !== null) {
     return (
-      <Card className="glassmorphic-card h-full flex flex-col">
+      <Card className="glassmorphic-card-static h-full flex flex-col">
         <CardHeader className="pb-4">
           <CardTitle className="font-headline text-2xl text-gray-50 flex items-center">
             <PackagePlus className="mr-3 h-6 w-6 text-primary" />
@@ -211,7 +211,7 @@ export function AssetDetailPanel({ asset, rackAssets, tenantId, rackId, rackLoca
 
   return (
     <>
-      <Card className="glassmorphic-card h-full flex flex-col">
+      <Card className="glassmorphic-card-static h-full flex flex-col">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <CardTitle className="font-headline text-2xl text-gray-50 flex items-center">

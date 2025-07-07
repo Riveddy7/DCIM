@@ -140,28 +140,22 @@ export default function RacksPage() {
           <h1 className="text-3xl font-bold font-headline text-gray-50">
             Gestión de Racks
           </h1>
-          <Link href="/dashboard">
-            <Button variant="outline" className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300">
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              Volver al Dashboard
-            </Button>
-          </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
-          <div className="relative sm:col-span-2 lg:col-span-2">
+        <div className="flex flex-col sm:flex-row gap-4 items-end">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
             <Input
               type="search"
               placeholder="Buscar por nombre, ubicación o activo..."
-              className="pl-10 bg-input border-purple-500/30 focus:ring-primary focus:border-primary text-gray-50"
+              className="pl-10 bg-input border-white/20 focus:ring-primary focus:border-primary text-gray-50"
             />
           </div>
           
           <div className="space-y-1">
             <label htmlFor="status-filter" className="text-xs text-gray-400 flex items-center"><ListFilter className="w-3 h-3 mr-1"/>Estado</label>
             <Select defaultValue="all">
-              <SelectTrigger id="status-filter" className="bg-input border-purple-500/30 text-gray-300 focus:ring-primary focus:border-primary">
+              <SelectTrigger id="status-filter" className="bg-input border-white/20 text-gray-300 focus:ring-primary focus:border-primary">
                 <SelectValue placeholder="Filtrar por estado" />
               </SelectTrigger>
               <SelectContent className="bg-popover border-purple-500/50 text-gray-200">
@@ -176,7 +170,7 @@ export default function RacksPage() {
           <div className="space-y-1">
             <label htmlFor="location-filter" className="text-xs text-gray-400 flex items-center"><MapPin className="w-3 h-3 mr-1"/>Ubicación</label>
             <Select defaultValue="all">
-              <SelectTrigger id="location-filter" className="bg-input border-purple-500/30 text-gray-300 focus:ring-primary focus:border-primary">
+              <SelectTrigger id="location-filter" className="bg-input border-white/20 text-gray-300 focus:ring-primary focus:border-primary">
                 <SelectValue placeholder="Filtrar por ubicación" />
               </SelectTrigger>
               <SelectContent className="bg-popover border-purple-500/50 text-gray-200">
@@ -192,7 +186,7 @@ export default function RacksPage() {
         <div className="mt-6 flex justify-end">
             <Dialog open={isCreateRackDialogOpen} onOpenChange={setIsCreateRackDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 neon-glow-primary">
+                <Button className="glassmorphic-card bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border-white/20">
                   <PlusCircle className="mr-2 h-5 w-5" />
                   Crear Nuevo Rack
                 </Button>
