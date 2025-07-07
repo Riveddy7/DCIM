@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Server, Power, Info, ListTree, PackagePlus, Cable, CirclePlus, GitCommitHorizontal, Trash2, ArrowRight, Network, Rows3, Columns3 } from 'lucide-react';
+import { Server, Power, Info, ListTree, PackagePlus, Cable, CirclePlus, GitCommitHorizontal, Trash2, ArrowRight, Network, Rows3, Columns3, Plus } from 'lucide-react';
 import type { AssetWithPorts, Json, PortDetails, PortConnectionInfo } from '@/lib/database.types';
 import { cn } from '@/lib/utils';
 import { CreateAssetForm } from './CreateAssetForm';
@@ -182,11 +182,33 @@ export function AssetDetailPanel({ asset, rackAssets, tenantId, rackId, rackLoca
 
   if (!asset) {
     return (
-      <Card className="glassmorphic-card h-full flex flex-col items-center justify-center">
-        <CardContent className="text-center">
-          <Server className="mx-auto h-16 w-16 text-gray-600 mb-4" />
-          <p className="text-gray-400">Selecciona un activo del rack</p>
-          <p className="text-sm text-gray-500">o un espacio vacío para añadir uno nuevo.</p>
+      <Card className="glassmorphic-card-static h-full flex flex-col">
+        <CardContent className="text-center space-y-6 p-8 pt-16">
+          <div className="space-y-4">
+            <Server className="mx-auto h-20 w-20 text-purple-500 opacity-80" />
+            <div className="space-y-2">
+              <h3 className="text-xl font-headline text-gray-50">Panel de Información</h3>
+              <p className="text-gray-400 text-sm max-w-sm mx-auto">
+                Aquí podrás ver los detalles de tus activos y gestionar sus conexiones
+              </p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3 text-gray-300 text-sm">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/30">
+                <span className="text-purple-400 font-medium">1</span>
+              </div>
+              <span>Selecciona un activo del rack para ver sus datos</span>
+            </div>
+            
+            <div className="flex items-center space-x-3 text-gray-300 text-sm">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/30">
+                <Plus className="h-4 w-4 text-purple-400" />
+              </div>
+              <span>Haz clic en un espacio vacío (ícono +) para agregar uno nuevo</span>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );

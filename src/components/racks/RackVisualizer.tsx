@@ -18,6 +18,46 @@ export function RackVisualizer({ total_u, assets, selectedAssetId, onAssetSelect
   const uMarkers = Array.from({ length: total_u }, (_, i) => i + 1);
   const uHeightRem = 2.25; // Height of each U slot
 
+  // Function to get asset type colors
+  const getAssetTypeColor = (assetType: string | null): string => {
+    if (!assetType) return 'bg-gray-500/20 border-gray-500/30 hover:bg-gray-500/40'; // default
+    
+    const type = assetType.toUpperCase();
+    
+    // Server types - AZUL
+    if (type.includes('SERVER') || type === 'SERVIDOR') {
+      return 'bg-blue-500/20 border-blue-500/30 hover:bg-blue-500/40';
+    }
+    // Switch types - MORADO
+    else if (type.includes('SWITCH') || type === 'CONMUTADOR') {
+      return 'bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/40';
+    }
+    // Patch Panel types - NEGRO
+    else if (type.includes('PATCH') || type.includes('PANEL') || type === 'PATCH_PANEL') {
+      return 'bg-gray-900/60 border-gray-700/70 hover:bg-gray-800/80';
+    }
+    // PDU types - GRIS
+    else if (type.includes('PDU') || type === 'DISTRIBUIDOR' || type.includes('POWER')) {
+      return 'bg-gray-500/30 border-gray-400/50 hover:bg-gray-400/50';
+    }
+    // UPS types - ROJO
+    else if (type.includes('UPS') || type === 'SAI') {
+      return 'bg-red-500/20 border-red-500/30 hover:bg-red-500/40';
+    }
+    // Organizer types - GRIS OSCURO
+    else if (type.includes('ORGANIZADOR') || type.includes('ORGANIZER') || type.includes('CABLE')) {
+      return 'bg-gray-700/30 border-gray-600/50 hover:bg-gray-600/50';
+    }
+    // BLANCK type - Tratarlo como organizador (gris oscuro)
+    else if (type === 'BLANCK' || type === 'BLANK') {
+      return 'bg-gray-700/30 border-gray-600/50 hover:bg-gray-600/50';
+    }
+    // Default for unknown types
+    else {
+      return 'bg-yellow-500/20 border-yellow-500/30 hover:bg-yellow-500/40';
+    }
+  };
+
   const occupiedUs = new Set<number>();
   assets.forEach(asset => {
     if (asset.start_u !== null && asset.size_u !== null && asset.start_u > 0 && asset.size_u > 0) {
@@ -101,9 +141,10 @@ export function RackVisualizer({ total_u, assets, selectedAssetId, onAssetSelect
                 onClick={() => onAssetSelect(asset.id)}
                 title={`${asset.name || 'Unnamed Asset'} (Size: ${asset.size_u}U, Start U: ${asset.start_u})`}
                 className={cn(
-                  "w-full bg-primary/20 hover:bg-primary/40 border border-purple-500/30 rounded p-1 text-xs cursor-pointer transition-all duration-200 ease-in-out text-gray-50 overflow-hidden",
+                  "w-full rounded p-1 text-xs cursor-pointer transition-all duration-200 ease-in-out text-gray-50 overflow-hidden",
                   "focus:outline-none focus:ring-2 focus:ring-purple-400",
-                  asset.id === selectedAssetId && "ring-2 ring-offset-2 ring-offset-background ring-purple-400 neon-glow-primary bg-primary/50 shadow-lg"
+                  getAssetTypeColor(asset.asset_type),
+                  asset.id === selectedAssetId && "ring-2 ring-offset-2 ring-offset-background ring-purple-400 shadow-lg"
                 )}
                 style={{
                   gridRowStart: gridRowStart,
